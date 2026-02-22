@@ -12,9 +12,9 @@ function getBoatForSender(from: string): BoatName | null {
   if (questGroup && from === questGroup) return "Celtic Quest IV";
   if (graceGroup && from === graceGroup) return "Celtic Grace";
 
-  // For 1:1 messages, check if it's a known crew number
+  // For 1:1 messages, default to Celtic Quest IV for testing/convenience
   // This allows crew to send photos directly to the bot number
-  return null;
+  return "Celtic Quest IV";
 }
 
 function getCurrentTripTime(): TripTime {

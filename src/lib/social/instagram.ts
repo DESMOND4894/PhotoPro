@@ -1,5 +1,6 @@
 import type { Trip } from "@/lib/types";
 import { generatePlatformVariant } from "@/lib/ai/caption-generator";
+import { sanitizeApiError } from "@/lib/utils/sanitize";
 
 const GRAPH_API_URL = "https://graph.facebook.com/v21.0";
 
@@ -62,7 +63,7 @@ async function postSingleCarousel(
 
     if (!response.ok) {
       const error = await response.text();
-      console.error(`Instagram media container failed:`, error);
+      console.error(`Instagram media container failed:`, sanitizeApiError(error));
       continue;
     }
 
@@ -104,7 +105,7 @@ async function postSingleCarousel(
 
   if (!carouselResponse.ok) {
     const error = await carouselResponse.text();
-    throw new Error(`Instagram carousel creation failed: ${error}`);
+    throw new Error(`Instagram carousel creation failed: ${sanitizeApiError(error)}`);
   }
 
   const carouselData = await carouselResponse.json();
@@ -131,7 +132,7 @@ async function publishContainer(containerId: string): Promise<string> {
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Instagram publish failed: ${error}`);
+    throw new Error(`Instagram publish failed: ${sanitizeApiError(error)}`);
   }
 
   const data = await response.json();
@@ -141,9 +142,10 @@ async function publishContainer(containerId: string): Promise<string> {
 
 async function waitForContainerReady(
   containerId: string,
-  maxAttempts = 10
+  maxAttempts = 12
 ): Promise<void> {
   const token = getAccessToken();
+  let delay = 2000; // Start at 2 seconds
 
   for (let i = 0; i < maxAttempts; i++) {
     const response = await fetch(
@@ -158,8 +160,8 @@ async function waitForContainerReady(
       }
     }
 
-    // Wait 3 seconds between checks
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    delay = Math.min(Math.round(delay * 1.5), 15000); // Exponential backoff, cap at 15s
   }
 
   throw new Error("Instagram container processing timed out");

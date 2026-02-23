@@ -4,6 +4,10 @@ import { postFacebookAlbum } from "@/lib/social/facebook";
 import { postInstagramCarousel } from "@/lib/social/instagram";
 import { postTikTokSlideshow } from "@/lib/social/tiktok";
 import type { Trip, SocialPlatform } from "@/lib/types";
+import { sanitizeApiError } from "@/lib/utils/sanitize";
+
+// Allow up to 120s for publishing (multi-photo uploads + Instagram processing)
+export const maxDuration = 120;
 
 /**
  * Cron job: Process scheduled publishing queue.
@@ -100,13 +104,22 @@ export async function GET(request: NextRequest) {
           .from("trips")
           .update({ status: "posted" })
           .eq("id", trip.id);
+      } else if (
+        allLogs?.some((l) => l.status === "failed") &&
+        allLogs?.every((l) => l.status === "posted" || l.status === "failed")
+      ) {
+        // All platforms attempted, some failed
+        await supabase
+          .from("trips")
+          .update({ status: "failed" })
+          .eq("id", trip.id);
       }
 
       published++;
       console.log(`Published ${trip.boat} to ${platform}: ${platformPostId}`);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Unknown error";
+      const rawError = err instanceof Error ? err.message : "Unknown error";
+      const errorMessage = sanitizeApiError(rawError);
       console.error(`Publish failed [${platform}]:`, errorMessage);
 
       await supabase

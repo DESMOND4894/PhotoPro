@@ -109,16 +109,17 @@ export async function sendCaptainNotification(
   photoCount: number,
   caption: string
 ): Promise<void> {
-  const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE!;
+  const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE!.trim();
 
   const message =
     `📸 ${boat} — ${tripTime.charAt(0).toUpperCase() + tripTime.slice(1)} Trip\n` +
     `${photoCount} photos ready to post\n\n` +
     `Caption:\n"${caption}"\n\n` +
     `Reply:\n` +
-    `✅ = Approve & post all ${photoCount} photos\n` +
-    `✏️ = Send me a new caption\n` +
-    `⏭️ = Skip this batch\n\n` +
+    `OK = Approve & post\n` +
+    `EDIT = New caption\n` +
+    `SKIP = Don't post\n` +
+    `Or type your own caption to use it\n\n` +
     `Trip ID: ${tripId.slice(0, 8)}`;
 
   await sendTextMessage(captainPhone, message);

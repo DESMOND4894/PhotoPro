@@ -2,7 +2,7 @@ export type BoatName = "Celtic Quest IV" | "Celtic Grace";
 
 export type TripTime = "morning" | "afternoon";
 
-export type TripStatus = "receiving" | "pending" | "approved" | "posting" | "posted" | "skipped";
+export type TripStatus = "receiving" | "pending" | "approved" | "posting" | "posted" | "skipped" | "failed";
 
 export type SocialPlatform = "facebook" | "instagram" | "tiktok";
 

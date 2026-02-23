@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get("status");
   const boat = searchParams.get("boat");
   const date = searchParams.get("date");
-  const limit = parseInt(searchParams.get("limit") || "50", 10);
+  const rawLimit = parseInt(searchParams.get("limit") || "50", 10);
+  const limit = Math.min(Math.max(rawLimit, 1), 100);
 
   let query = supabase
     .from("trips")

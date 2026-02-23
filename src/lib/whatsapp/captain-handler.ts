@@ -9,32 +9,133 @@ export async function handleCaptainResponse(
   const supabase = createServiceClient();
   const normalizedText = text.trim().toLowerCase();
 
-  // "✅ all" — approve all pending batches
-  if (normalizedText === "✅ all" || normalizedText === "✅all") {
+  // PROCESS — gather all "receiving" photos, generate caption, send for review
+  if (normalizedText === "process" || normalizedText === "ready" || normalizedText === "post") {
+    await processReceivingTrips(supabase, captainPhone);
+    return;
+  }
+
+  // Approve all pending batches
+  if (normalizedText === "ok all" || normalizedText === "approve all") {
     await approveAllPending(supabase, captainPhone);
     return;
   }
 
-  // "✅" — approve the most recent pending batch
-  if (normalizedText === "✅") {
+  // Approve the most recent pending batch
+  if (normalizedText === "ok" || normalizedText === "approve" || normalizedText === "yes" || normalizedText === "go") {
     await approveLatestPending(supabase, captainPhone);
     return;
   }
 
-  // "✏️" — request new caption for latest pending
-  if (normalizedText === "✏️" || normalizedText === "edit") {
+  // EDIT — prompt to type a custom caption
+  if (normalizedText === "edit") {
+    await sendTextMessage(captainPhone, "Type your new caption and send it:");
+    return;
+  }
+
+  // NEW / REDO — generate a fresh AI caption
+  if (normalizedText === "new" || normalizedText === "redo") {
     await requestNewCaption(supabase, captainPhone);
     return;
   }
 
-  // "⏭️" — skip the latest pending batch
-  if (normalizedText === "⏭️" || normalizedText === "skip") {
+  // Skip the latest pending batch
+  if (normalizedText === "skip" || normalizedText === "no" || normalizedText === "pass") {
     await skipLatestPending(supabase, captainPhone);
     return;
   }
 
-  // Any other text — treat as a custom caption and auto-approve
+  // STATUS — check what's in the queue
+  if (normalizedText === "status") {
+    await sendStatus(supabase, captainPhone);
+    return;
+  }
+
+  // Any other text — treat as a custom caption (don't auto-post)
   await applyCustomCaption(supabase, captainPhone, text.trim());
+}
+
+// Process all "receiving" trips — generate captions and move to "pending"
+async function processReceivingTrips(
+  supabase: ReturnType<typeof createServiceClient>,
+  captainPhone: string
+): Promise<void> {
+  const { data: receivingTrips } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("status", "receiving")
+    .order("created_at", { ascending: false });
+
+  if (!receivingTrips || receivingTrips.length === 0) {
+    await sendTextMessage(captainPhone, "No photos waiting to be processed.");
+    return;
+  }
+
+  const { generateCaption } = await import("@/lib/ai/caption-generator");
+
+  for (const trip of receivingTrips as Trip[]) {
+    const caption = await generateCaption(trip);
+
+    await supabase
+      .from("trips")
+      .update({
+        caption,
+        caption_facebook: caption,
+        status: "pending",
+        batch_complete: true,
+      })
+      .eq("id", trip.id);
+
+    await sendTextMessage(
+      captainPhone,
+      `📸 ${trip.boat} — ${trip.trip_time} trip\n` +
+        `${trip.photo_count} photo${trip.photo_count > 1 ? "s" : ""}\n\n` +
+        `Caption:\n"${caption}"\n\n` +
+        `OK = Post it\n` +
+        `EDIT = Write your own\n` +
+        `NEW = Different AI caption\n` +
+        `SKIP = Don't post`
+    );
+  }
+}
+
+async function sendStatus(
+  supabase: ReturnType<typeof createServiceClient>,
+  captainPhone: string
+): Promise<void> {
+  const { data: receiving } = await supabase
+    .from("trips")
+    .select("boat, trip_time, photo_count")
+    .eq("status", "receiving");
+
+  const { data: pending } = await supabase
+    .from("trips")
+    .select("boat, trip_time, photo_count")
+    .eq("status", "pending");
+
+  let msg = "";
+
+  if (receiving && receiving.length > 0) {
+    msg += "📷 Photos waiting:\n";
+    for (const t of receiving) {
+      msg += `• ${t.boat} ${t.trip_time}: ${t.photo_count} photos\n`;
+    }
+    msg += "\nType PROCESS when ready.\n\n";
+  }
+
+  if (pending && pending.length > 0) {
+    msg += "📝 Ready for approval:\n";
+    for (const t of pending) {
+      msg += `• ${t.boat} ${t.trip_time}: ${t.photo_count} photos\n`;
+    }
+    msg += "\nType OK to approve.";
+  }
+
+  if (!msg) {
+    msg = "Nothing in the queue. Send some photos!";
+  }
+
+  await sendTextMessage(captainPhone, msg);
 }
 
 async function getLatestPendingTrip(
@@ -63,24 +164,31 @@ async function approveTrip(
     })
     .eq("id", trip.id);
 
-  // Create posting log entries for each enabled platform with staggered schedule
+  // Delete any existing posting_log entries for this trip, then create fresh ones
+  await supabase
+    .from("posting_log")
+    .delete()
+    .eq("trip_id", trip.id);
+
   const now = new Date();
-  const schedules: Record<string, number> = {
-    facebook: 0, // Immediately
-    instagram: 30, // 30 minutes later
-    tiktok: 60, // 1 hour later
-  };
-
   for (const platform of trip.platforms_enabled) {
-    const scheduledFor = new Date(
-      now.getTime() + (schedules[platform] || 0) * 60 * 1000
-    );
-
     await supabase.from("posting_log").insert({
       trip_id: trip.id,
       platform,
       status: "pending",
-      scheduled_for: scheduledFor.toISOString(),
+      scheduled_for: now.toISOString(),
+    });
+  }
+
+  // Trigger publish immediately (don't await — let it run async)
+  // If this fails, the scheduled cron (every 5 min) will pick it up as backup
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const cronSecret = process.env.CRON_SECRET;
+  if (appUrl && cronSecret) {
+    fetch(`${appUrl}/api/cron/publish`, {
+      headers: { Authorization: `Bearer ${cronSecret}` },
+    }).catch((err) => {
+      console.error("[CAPTAIN] Failed to trigger publish cron:", err);
     });
   }
 }
@@ -92,7 +200,7 @@ async function approveLatestPending(
   const trip = await getLatestPendingTrip(supabase);
 
   if (!trip) {
-    await sendTextMessage(captainPhone, "No pending batches to approve.");
+    await sendTextMessage(captainPhone, "No pending batches to approve. Type PROCESS first if you have photos waiting.");
     return;
   }
 
@@ -126,8 +234,7 @@ async function approveAllPending(
   const boatNames = (pendingTrips as Trip[]).map((t) => t.boat).join(" & ");
   await sendTextMessage(
     captainPhone,
-    `✅ ${pendingTrips.length} batch${pendingTrips.length > 1 ? "es" : ""} approved! ` +
-      `${boatNames} posting to Facebook now. Instagram and TikTok to follow.`
+    `Approved! ${boatNames} posting now.`
   );
 }
 
@@ -142,7 +249,6 @@ async function requestNewCaption(
     return;
   }
 
-  // Re-generate caption
   const { generateCaption } = await import("@/lib/ai/caption-generator");
   const newCaption = await generateCaption(trip);
 
@@ -154,7 +260,10 @@ async function requestNewCaption(
   await sendTextMessage(
     captainPhone,
     `📝 New caption for ${trip.boat}:\n\n"${newCaption}"\n\n` +
-      `Reply ✅ to approve, ✏️ for another, or send your own caption.`
+      `OK = Post it\n` +
+      `EDIT = Write your own\n` +
+      `NEW = Try again\n` +
+      `SKIP = Don't post`
   );
 }
 
@@ -176,7 +285,7 @@ async function skipLatestPending(
 
   await sendTextMessage(
     captainPhone,
-    `⏭️ ${trip.boat} ${trip.trip_time} batch skipped. You can approve it later from the dashboard.`
+    `Skipped ${trip.boat} ${trip.trip_time}. You can approve it later from the dashboard.`
   );
 }
 
@@ -190,7 +299,7 @@ async function applyCustomCaption(
   if (!trip) {
     await sendTextMessage(
       captainPhone,
-      "No pending batches. Your message wasn't applied as a caption."
+      "No pending batches. Type PROCESS first to prepare your photos, then you can set a caption."
     );
     return;
   }
@@ -200,12 +309,8 @@ async function applyCustomCaption(
     .update({ caption })
     .eq("id", trip.id);
 
-  // Auto-approve with custom caption
-  await approveTrip(supabase, trip);
-
-  await sendPostingConfirmation(
+  await sendTextMessage(
     captainPhone,
-    trip.boat,
-    trip.platforms_enabled
+    `Caption set for ${trip.boat}:\n\n"${caption}"\n\nOK = Post it\nSKIP = Don't post`
   );
 }

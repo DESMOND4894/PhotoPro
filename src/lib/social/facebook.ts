@@ -1,4 +1,5 @@
 import type { Trip } from "@/lib/types";
+import { sanitizeApiError } from "@/lib/utils/sanitize";
 
 const GRAPH_API_URL = "https://graph.facebook.com/v21.0";
 
@@ -35,7 +36,7 @@ export async function postFacebookAlbum(trip: Trip): Promise<string> {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error(`Facebook photo upload failed:`, error);
+      console.error(`Facebook photo upload failed:`, sanitizeApiError(error));
       continue;
     }
 
@@ -65,7 +66,7 @@ export async function postFacebookAlbum(trip: Trip): Promise<string> {
 
   if (!feedResponse.ok) {
     const error = await feedResponse.text();
-    throw new Error(`Facebook feed post failed: ${error}`);
+    throw new Error(`Facebook feed post failed: ${sanitizeApiError(error)}`);
   }
 
   const feedData = await feedResponse.json();

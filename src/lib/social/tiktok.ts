@@ -1,5 +1,6 @@
 import type { Trip } from "@/lib/types";
 import { generatePlatformVariant } from "@/lib/ai/caption-generator";
+import { sanitizeApiError } from "@/lib/utils/sanitize";
 
 const TIKTOK_API_URL = "https://open.tiktokapis.com/v2";
 
@@ -49,8 +50,8 @@ export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
 
   if (!initResponse.ok) {
     const error = await initResponse.text();
-    console.error(`TikTok init failed:`, error);
-    throw new Error(`TikTok post init failed: ${error}`);
+    console.error(`TikTok init failed:`, sanitizeApiError(error));
+    throw new Error(`TikTok post init failed: ${sanitizeApiError(error)}`);
   }
 
   const initData = await initResponse.json();
@@ -91,7 +92,7 @@ async function waitForTikTokPublish(
       const status = data.data?.status;
 
       if (status === "PUBLISH_COMPLETE") {
-        return data.data?.publicaly_available_post_id?.[0] || publishId;
+        return data.data?.publicly_available_post_id?.[0] || publishId;
       }
 
       if (status === "FAILED") {

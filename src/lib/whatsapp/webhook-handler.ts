@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import { downloadMedia, sendGroupConfirmation } from "./client";
+import { downloadMedia, sendTextMessage } from "./client";
 import type { WhatsAppMessage, BoatName, TripTime } from "@/lib/types";
 import { getBoatSlug } from "@/lib/types";
 import { computeImageHash } from "@/lib/duplicate-detection";
@@ -44,6 +44,7 @@ export async function handleIncomingPhoto(
   const tripTime = getCurrentTripTime();
 
   // Get or create the trip record
+  // First check for any existing trip (including skipped/posted) to avoid unique constraint violation
   const { data: existingTrip } = await supabase
     .from("trips")
     .select("*")
@@ -56,6 +57,35 @@ export async function handleIncomingPhoto(
 
   if (existingTrip) {
     tripId = existingTrip.id;
+
+    if (existingTrip.status === "posted" || existingTrip.status === "skipped") {
+      // Trip is complete — reset for a new batch of photos
+      await supabase
+        .from("trips")
+        .update({
+          status: "receiving",
+          photo_urls: [],
+          photo_count: 0,
+          caption: null,
+          caption_facebook: null,
+          caption_instagram: null,
+          batch_complete: false,
+        })
+        .eq("id", tripId);
+    } else if (existingTrip.status === "receiving") {
+      // Normal case — trip is still collecting photos, continue adding
+    } else {
+      // Trip is "pending", "approved", or "posting" — don't wipe data
+      const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
+      if (senderPhone === captainPhone) {
+        await sendTextMessage(
+          captainPhone,
+          `Photos for ${boat} ${tripTime} are already being processed. ` +
+            `These new photos won't be added. Wait until the current batch is posted, then send new photos.`
+        );
+      }
+      return;
+    }
   } else {
     const { data: newTrip, error } = await supabase
       .from("trips")
@@ -68,8 +98,23 @@ export async function handleIncomingPhoto(
       .select()
       .single();
 
-    if (error) throw new Error(`Failed to create trip: ${error.message}`);
-    tripId = newTrip.id;
+    if (error && error.code === "23505") {
+      // Race condition: another request created the trip first — re-fetch
+      const { data: refetched } = await supabase
+        .from("trips")
+        .select("*")
+        .eq("boat", boat)
+        .eq("date", date)
+        .eq("trip_time", tripTime)
+        .single();
+
+      if (!refetched) throw new Error("Failed to fetch trip after unique constraint conflict");
+      tripId = refetched.id;
+    } else if (error) {
+      throw new Error(`Failed to create trip: ${error.message}`);
+    } else {
+      tripId = newTrip.id;
+    }
   }
 
   // Download the photo from WhatsApp
@@ -88,13 +133,17 @@ export async function handleIncomingPhoto(
 
   if (existingPhoto) {
     console.log(`Duplicate photo detected for trip ${tripId}, skipping`);
+    const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
+    if (senderPhone === captainPhone) {
+      await sendTextMessage(captainPhone, "Photo already received (duplicate detected). Skipping.");
+    }
     return;
   }
 
-  // Upload to Supabase Storage
+  // Upload to Supabase Storage — use timestamp-based name to avoid race condition conflicts
   const boatSlug = getBoatSlug(boat);
-  const photoNumber = (existingTrip?.photo_count || 0) + 1;
-  const storagePath = `photos/${date}/${boatSlug}/${tripTime}/photo-${String(photoNumber).padStart(3, "0")}.jpg`;
+  const photoTimestamp = Date.now();
+  const storagePath = `photos/${date}/${boatSlug}/${tripTime}/photo-${photoTimestamp}.jpg`;
 
   const { error: uploadError } = await supabase.storage
     .from("photos")
@@ -122,14 +171,15 @@ export async function handleIncomingPhoto(
     is_duplicate: false,
   });
 
-  // Update trip record
-  const { data: currentTrip } = await supabase
-    .from("trips")
-    .select("photo_count, photo_urls")
-    .eq("id", tripId)
-    .single();
+  // Update trip record — recompute from photos table to avoid race conditions
+  const { data: allPhotos } = await supabase
+    .from("photos")
+    .select("public_url")
+    .eq("trip_id", tripId)
+    .eq("is_duplicate", false)
+    .order("uploaded_at", { ascending: true });
 
-  const updatedUrls = [...(currentTrip?.photo_urls || []), publicUrl];
+  const updatedUrls = allPhotos?.map((p) => p.public_url) || [];
 
   await supabase
     .from("trips")
@@ -144,6 +194,15 @@ export async function handleIncomingPhoto(
   console.log(
     `Photo ${updatedUrls.length} saved for ${boat} ${tripTime} trip (${tripId})`
   );
+
+  // Send a quiet confirmation to the sender
+  const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
+  if (senderPhone === captainPhone) {
+    await sendTextMessage(
+      captainPhone,
+      `📸 Photo ${updatedUrls.length} received for ${boat}. Type PROCESS when ready to create a post.`
+    );
+  }
 }
 
 export async function handleIncomingText(
@@ -155,9 +214,17 @@ export async function handleIncomingText(
   const text = message.text?.body?.trim();
   if (!text) return;
 
+  // Check if this is from the captain FIRST (approval flow)
+  const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
+  if (senderPhone === captainPhone && !groupId) {
+    const { handleCaptainResponse } = await import("./captain-handler");
+    await handleCaptainResponse(text, senderPhone);
+    return;
+  }
+
   // Check if this is from a group (crew note)
   const boat = getBoatForSender(groupId || senderPhone);
-  if (boat) {
+  if (boat && groupId) {
     // Crew note: attach to current trip
     const date = getTodayDate();
     const tripTime = getCurrentTripTime();
@@ -174,21 +241,13 @@ export async function handleIncomingText(
     console.log(`Crew note saved for ${boat}: "${text}"`);
     return;
   }
-
-  // Check if this is from the captain (approval flow)
-  const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE;
-  if (senderPhone === captainPhone) {
-    const { handleCaptainResponse } = await import("./captain-handler");
-    await handleCaptainResponse(text, senderPhone);
-    return;
-  }
 }
 
 export async function handleIncomingReaction(
   message: WhatsAppMessage,
   senderPhone: string
 ): Promise<void> {
-  const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE;
+  const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
   if (senderPhone !== captainPhone) return;
 
   const emoji = message.reaction?.emoji;

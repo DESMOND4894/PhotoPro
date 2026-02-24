@@ -2,7 +2,6 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { downloadMedia, sendTextMessage } from "./client";
 import type { WhatsAppMessage, BoatName, TripTime } from "@/lib/types";
 import { getBoatSlug } from "@/lib/types";
-import { computeImageHash } from "@/lib/duplicate-detection";
 
 // Map WhatsApp group JIDs to boat names (configured via env)
 function getBoatForSender(from: string): BoatName | null {
@@ -120,26 +119,6 @@ export async function handleIncomingPhoto(
   // Download the photo from WhatsApp
   const photoBuffer = await downloadMedia(mediaId);
 
-  // Compute image hash for duplicate detection
-  const imageHash = computeImageHash(photoBuffer);
-
-  // Check for duplicates
-  const { data: existingPhoto } = await supabase
-    .from("photos")
-    .select("id")
-    .eq("trip_id", tripId)
-    .eq("image_hash", imageHash)
-    .single();
-
-  if (existingPhoto) {
-    console.log(`Duplicate photo detected for trip ${tripId}, skipping`);
-    const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
-    if (senderPhone === captainPhone) {
-      await sendTextMessage(captainPhone, "Photo already received (duplicate detected). Skipping.");
-    }
-    return;
-  }
-
   // Upload to Supabase Storage — use timestamp-based name to avoid race condition conflicts
   const boatSlug = getBoatSlug(boat);
   const photoTimestamp = Date.now();
@@ -167,8 +146,6 @@ export async function handleIncomingPhoto(
     storage_path: storagePath,
     public_url: publicUrl,
     whatsapp_media_id: mediaId,
-    image_hash: imageHash,
-    is_duplicate: false,
   });
 
   // Update trip record — recompute from photos table to avoid race conditions
@@ -176,7 +153,6 @@ export async function handleIncomingPhoto(
     .from("photos")
     .select("public_url")
     .eq("trip_id", tripId)
-    .eq("is_duplicate", false)
     .order("uploaded_at", { ascending: true });
 
   const updatedUrls = allPhotos?.map((p) => p.public_url) || [];

@@ -29,29 +29,46 @@ export async function GET(request: NextRequest) {
 }
 
 // Verify Meta webhook signature using HMAC-SHA256
-function verifyWebhookSignature(rawBody: string, signatureHeader: string): boolean {
-  const appSecret = process.env.META_APP_SECRET;
-  if (!appSecret) {
-    console.error("[WEBHOOK] META_APP_SECRET not configured — cannot verify signatures");
-    return false;
-  }
-
-  if (!signatureHeader || signatureHeader === "none") {
-    return false;
-  }
-
+function checkSignature(rawBody: string, signatureHeader: string, secret: string): boolean {
   const expectedSignature =
-    "sha256=" + crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex");
-
+    "sha256=" + crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
   try {
     return crypto.timingSafeEqual(
       Buffer.from(signatureHeader),
       Buffer.from(expectedSignature)
     );
   } catch {
-    // Lengths don't match
     return false;
   }
+}
+
+function verifyWebhookSignature(rawBody: string, signatureHeader: string): boolean {
+  if (!signatureHeader || signatureHeader === "none") {
+    console.error("[WEBHOOK] No signature header present");
+    return false;
+  }
+
+  // Try META_APP_SECRET first, then fall back to INSTAGRAM_APP_SECRET
+  // (both should be the same Meta App Secret, but allows for misconfiguration)
+  const secrets = [
+    { name: "META_APP_SECRET", value: process.env.META_APP_SECRET },
+    { name: "INSTAGRAM_APP_SECRET", value: process.env.INSTAGRAM_APP_SECRET },
+  ].filter((s) => !!s.value);
+
+  if (secrets.length === 0) {
+    console.error("[WEBHOOK] No app secret configured (need META_APP_SECRET or INSTAGRAM_APP_SECRET)");
+    return false;
+  }
+
+  for (const secret of secrets) {
+    if (checkSignature(rawBody, signatureHeader, secret.value!)) {
+      console.log(`[WEBHOOK] Signature verified using ${secret.name}`);
+      return true;
+    }
+  }
+
+  console.error(`[WEBHOOK] Signature failed against ${secrets.map((s) => s.name).join(", ")}`);
+  return false;
 }
 
 // Incoming messages (POST)

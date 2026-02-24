@@ -3,15 +3,20 @@
 import { TripQueue } from "@/components/dashboard/trip-queue";
 
 export default function DashboardPage() {
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-slate-900">
           Today&apos;s Queue
-        </h1>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          Review and approve trip photos for publishing
-        </p>
+        </h2>
+        <p className="text-slate-500 mt-1">{today}</p>
       </div>
 
       <TripQueue filter="today" />

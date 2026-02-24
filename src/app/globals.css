@@ -18,6 +18,7 @@
   --ring: #1e40af;
   --success: #22c55e;
   --warning: #f59e0b;
+  --sidebar-bg: #0f172a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -39,6 +40,7 @@
     --ring: #3b82f6;
     --success: #16a34a;
     --warning: #d97706;
+    --sidebar-bg: #020617;
   }
 }
 

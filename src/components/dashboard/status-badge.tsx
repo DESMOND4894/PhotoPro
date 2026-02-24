@@ -2,39 +2,42 @@ import type { TripStatus } from "@/lib/types";
 
 const statusConfig: Record<
   TripStatus,
-  { label: string; className: string }
+  { label: string; dotColor: string; className: string }
 > = {
   receiving: {
     label: "Receiving",
-    className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+    dotColor: "bg-blue-500",
+    className: "bg-blue-100 text-blue-800 border-blue-200",
   },
   pending: {
-    label: "Pending Approval",
-    className:
-      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+    label: "Pending",
+    dotColor: "bg-amber-500",
+    className: "bg-amber-100 text-amber-800 border-amber-200",
   },
   approved: {
     label: "Approved",
-    className:
-      "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+    dotColor: "bg-green-500",
+    className: "bg-green-100 text-green-800 border-green-200",
   },
   posting: {
-    label: "Posting…",
-    className:
-      "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+    label: "Posting\u2026",
+    dotColor: "bg-purple-500",
+    className: "bg-purple-100 text-purple-800 border-purple-200",
   },
   posted: {
     label: "Posted",
-    className:
-      "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200",
+    dotColor: "bg-emerald-500",
+    className: "bg-emerald-100 text-emerald-800 border-emerald-200",
   },
   skipped: {
     label: "Skipped",
-    className: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
+    dotColor: "bg-gray-400",
+    className: "bg-gray-100 text-gray-600 border-gray-200",
   },
   failed: {
     label: "Failed",
-    className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+    dotColor: "bg-red-500",
+    className: "bg-red-100 text-red-800 border-red-200",
   },
 };
 
@@ -43,8 +46,9 @@ export function StatusBadge({ status }: { status: TripStatus }) {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${config.className}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${config.className}`}
     >
+      <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
       {config.label}
     </span>
   );

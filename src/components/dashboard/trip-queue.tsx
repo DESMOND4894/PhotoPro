@@ -45,20 +45,18 @@ export function TripQueue({ filter = "today", statusFilter }: TripQueueProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-sm text-[var(--muted-foreground)]">
-          Loading trips…
-        </div>
+        <div className="text-sm text-slate-400">Loading trips…</div>
       </div>
     );
   }
 
   if (trips.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--border)] py-16">
-        <p className="text-lg font-medium text-[var(--muted-foreground)]">
+      <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-white py-16">
+        <p className="text-lg font-medium text-slate-400">
           No trips yet today
         </p>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+        <p className="mt-1 text-sm text-slate-400">
           Photos will appear here when crew sends them via WhatsApp
         </p>
       </div>
@@ -77,7 +75,7 @@ export function TripQueue({ filter = "today", statusFilter }: TripQueueProps) {
     <div className="space-y-6">
       {pendingTrips.length > 0 && (
         <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
             Needs Approval ({pendingTrips.length})
           </h2>
           <div className="space-y-4">
@@ -90,7 +88,7 @@ export function TripQueue({ filter = "today", statusFilter }: TripQueueProps) {
 
       {otherTrips.length > 0 && (
         <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
             {filter === "today" ? "Today" : "All Trips"} ({otherTrips.length})
           </h2>
           <div className="space-y-4">

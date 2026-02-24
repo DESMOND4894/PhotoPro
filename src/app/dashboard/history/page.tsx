@@ -8,12 +8,10 @@ export default function HistoryPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">
-            Post History
-          </h1>
-          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+          <h2 className="text-2xl font-bold text-slate-900">Post History</h2>
+          <p className="mt-1 text-slate-500">
             All trip batches and their publishing status
           </p>
         </div>
@@ -21,7 +19,7 @@ export default function HistoryPage() {
         <select
           value={boatFilter}
           onChange={(e) => setBoatFilter(e.target.value)}
-          className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none"
+          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none shadow-sm"
         >
           <option value="">All Boats</option>
           <option value="Celtic Quest IV">Celtic Quest IV</option>

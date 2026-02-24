@@ -1,4 +1,5 @@
-import { Header } from "@/components/layout/header";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Footer } from "@/components/layout/footer";
 
 export default function DashboardLayout({
   children,
@@ -6,9 +7,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <Header />
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+    <div className="min-h-screen bg-slate-50 flex">
+      <Sidebar />
+      <main className="flex-1 ml-64 flex flex-col min-h-screen">
+        <div className="flex-1 p-8">{children}</div>
+        <Footer />
+      </main>
     </div>
   );
 }

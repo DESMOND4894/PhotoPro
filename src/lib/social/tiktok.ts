@@ -15,9 +15,9 @@ function getAccessToken(): string {
 export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
   const token = getAccessToken();
 
-  // Generate TikTok caption variant
+  // Use TikTok-specific caption, fall back to main caption, then AI generation
   const caption =
-    trip.caption_tiktok || (await generatePlatformVariant(trip, "tiktok"));
+    trip.caption_tiktok || trip.caption || (await generatePlatformVariant(trip, "tiktok"));
 
   // Step 1: Initialize photo post
   const photoUrls = trip.photo_urls.slice(0, 35); // TikTok max 35 images

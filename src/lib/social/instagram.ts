@@ -27,9 +27,10 @@ export async function postInstagramCarousel(trip: Trip): Promise<string[]> {
     chunks.push(photoUrls.slice(i, i + 20));
   }
 
-  // Generate Instagram caption variant
+  // Use Instagram-specific caption, fall back to main caption, then AI generation
   const caption =
     trip.caption_instagram ||
+    trip.caption ||
     (await generatePlatformVariant(trip, "instagram"));
 
   for (const chunk of chunks) {

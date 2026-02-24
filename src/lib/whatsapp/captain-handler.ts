@@ -22,7 +22,7 @@ export async function handleCaptainResponse(
   }
 
   // Approve the most recent pending batch
-  if (normalizedText === "ok" || normalizedText === "approve" || normalizedText === "yes" || normalizedText === "go") {
+  if (normalizedText === "ok" || normalizedText === "okay" || normalizedText === "approve" || normalizedText === "yes" || normalizedText === "go") {
     await approveLatestPending(supabase, captainPhone);
     return;
   }
@@ -254,7 +254,12 @@ async function requestNewCaption(
 
   await supabase
     .from("trips")
-    .update({ caption: newCaption })
+    .update({
+      caption: newCaption,
+      caption_facebook: newCaption,
+      caption_instagram: null,
+      caption_tiktok: null,
+    })
     .eq("id", trip.id);
 
   await sendTextMessage(
@@ -306,7 +311,12 @@ async function applyCustomCaption(
 
   await supabase
     .from("trips")
-    .update({ caption })
+    .update({
+      caption,
+      caption_facebook: caption,
+      caption_instagram: caption,
+      caption_tiktok: caption,
+    })
     .eq("id", trip.id);
 
   await sendTextMessage(

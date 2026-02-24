@@ -57,8 +57,11 @@ export async function handleIncomingPhoto(
   if (existingTrip) {
     tripId = existingTrip.id;
 
-    if (existingTrip.status === "posted" || existingTrip.status === "skipped" || existingTrip.status === "failed") {
-      // Trip is complete — reset for a new batch of photos
+    if (existingTrip.status !== "receiving") {
+      // Any non-receiving status gets reset when new photos arrive.
+      // "posted"/"skipped"/"failed" = old batch done, start fresh.
+      // "pending"/"approved"/"posting" = captain is adding more photos,
+      //   so the old caption is stale and the batch needs to restart.
       // IMPORTANT: Delete old posting_log entries first to prevent stale publishes
       await supabase
         .from("posting_log")
@@ -81,7 +84,6 @@ export async function handleIncomingPhoto(
         })
         .eq("id", tripId);
     }
-    // For any other status (receiving, pending, approved, posting) — just add the photo
   } else {
     const { data: newTrip, error } = await supabase
       .from("trips")

@@ -168,12 +168,12 @@ export async function handleIncomingPhoto(
     `Photo ${updatedUrls.length} saved for ${boat} ${tripTime} trip (${tripId})`
   );
 
-  // Send a quiet confirmation to the sender
+  // Only notify on the first photo — don't spam 20 messages for 20 photos
   const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
-  if (senderPhone === captainPhone) {
+  if (senderPhone === captainPhone && updatedUrls.length === 1) {
     await sendTextMessage(
       captainPhone,
-      `📸 Photo ${updatedUrls.length} received for ${boat}. Type PROCESS when ready to create a post.`
+      `📸 Photos coming in for ${boat}. Type PROCESS when you're done sending.`
     );
   }
 }

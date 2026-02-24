@@ -43,14 +43,52 @@ export async function GET(request: NextRequest) {
   let published = 0;
 
   for (const post of duePosts) {
-    const trip = post.trips as unknown as Trip;
     const platform = post.platform as SocialPlatform;
+    const tripId = post.trip_id;
 
-    // Update to "posting"
-    await supabase
+    // Atomic claim: only proceed if WE transition from "pending" to "posting"
+    // This prevents two concurrent cron runs from both publishing the same entry
+    const { data: claimed } = await supabase
       .from("posting_log")
       .update({ status: "posting" })
-      .eq("id", post.id);
+      .eq("id", post.id)
+      .eq("status", "pending")
+      .select();
+
+    if (!claimed || claimed.length === 0) {
+      console.log(`[PUBLISH] Skipping posting_log ${post.id} — already claimed by another process`);
+      continue;
+    }
+
+    // Re-read FRESH trip data from DB (not the stale JOIN data)
+    // This ensures we publish with the latest caption, not a stale one
+    const { data: freshTrip } = await supabase
+      .from("trips")
+      .select("*")
+      .eq("id", tripId)
+      .single();
+
+    if (!freshTrip) {
+      console.error(`[PUBLISH] Trip ${tripId} not found — skipping`);
+      await supabase
+        .from("posting_log")
+        .update({ status: "failed", error_message: "Trip not found" })
+        .eq("id", post.id);
+      continue;
+    }
+
+    const trip = freshTrip as Trip;
+
+    // Only publish if trip is actually approved or already posting
+    // Skip if trip was reset to receiving/pending/skipped (captain changed their mind)
+    if (trip.status !== "approved" && trip.status !== "posting") {
+      console.log(`[PUBLISH] Trip ${tripId} status is "${trip.status}" — skipping (expected approved/posting)`);
+      await supabase
+        .from("posting_log")
+        .update({ status: "failed", error_message: `Trip status was ${trip.status}, not approved` })
+        .eq("id", post.id);
+      continue;
+    }
 
     // Update trip status
     await supabase
@@ -84,8 +122,14 @@ export async function GET(request: NextRequest) {
         })
         .eq("id", post.id);
 
-      // Update trip's posted_to
-      const currentPostedTo = trip.posted_to || [];
+      // Update trip's posted_to — re-read to avoid stale data
+      const { data: currentTrip } = await supabase
+        .from("trips")
+        .select("posted_to")
+        .eq("id", trip.id)
+        .single();
+
+      const currentPostedTo = (currentTrip?.posted_to as SocialPlatform[]) || [];
       if (!currentPostedTo.includes(platform)) {
         await supabase
           .from("trips")
@@ -116,11 +160,11 @@ export async function GET(request: NextRequest) {
       }
 
       published++;
-      console.log(`Published ${trip.boat} to ${platform}: ${platformPostId}`);
+      console.log(`[PUBLISH] Published ${trip.boat} to ${platform}: ${platformPostId}`);
     } catch (err) {
       const rawError = err instanceof Error ? err.message : "Unknown error";
       const errorMessage = sanitizeApiError(rawError);
-      console.error(`Publish failed [${platform}]:`, errorMessage);
+      console.error(`[PUBLISH] Failed [${platform}]:`, errorMessage);
 
       await supabase
         .from("posting_log")

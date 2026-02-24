@@ -59,6 +59,12 @@ export async function handleIncomingPhoto(
 
     if (existingTrip.status === "posted" || existingTrip.status === "skipped" || existingTrip.status === "failed") {
       // Trip is complete — reset for a new batch of photos
+      // IMPORTANT: Delete old posting_log entries first to prevent stale publishes
+      await supabase
+        .from("posting_log")
+        .delete()
+        .eq("trip_id", tripId);
+
       await supabase
         .from("trips")
         .update({

@@ -57,7 +57,7 @@ export async function handleIncomingPhoto(
   if (existingTrip) {
     tripId = existingTrip.id;
 
-    if (existingTrip.status === "posted" || existingTrip.status === "skipped") {
+    if (existingTrip.status === "posted" || existingTrip.status === "skipped" || existingTrip.status === "failed") {
       // Trip is complete — reset for a new batch of photos
       await supabase
         .from("trips")
@@ -68,23 +68,14 @@ export async function handleIncomingPhoto(
           caption: null,
           caption_facebook: null,
           caption_instagram: null,
+          caption_tiktok: null,
           batch_complete: false,
+          approved_at: null,
+          posted_to: [],
         })
         .eq("id", tripId);
-    } else if (existingTrip.status === "receiving") {
-      // Normal case — trip is still collecting photos, continue adding
-    } else {
-      // Trip is "pending", "approved", or "posting" — don't wipe data
-      const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
-      if (senderPhone === captainPhone) {
-        await sendTextMessage(
-          captainPhone,
-          `Photos for ${boat} ${tripTime} are already being processed. ` +
-            `These new photos won't be added. Wait until the current batch is posted, then send new photos.`
-        );
-      }
-      return;
     }
+    // For any other status (receiving, pending, approved, posting) — just add the photo
   } else {
     const { data: newTrip, error } = await supabase
       .from("trips")

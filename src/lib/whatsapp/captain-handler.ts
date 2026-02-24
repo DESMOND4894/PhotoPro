@@ -22,7 +22,7 @@ export async function handleCaptainResponse(
   }
 
   // Approve the most recent pending batch
-  if (normalizedText === "ok" || normalizedText === "okay" || normalizedText === "approve" || normalizedText === "yes" || normalizedText === "go") {
+  if (normalizedText === "ok" || normalizedText === "okay" || normalizedText === "approve" || normalizedText === "yes" || normalizedText === "go" || normalizedText === "✅") {
     await approveLatestPending(supabase, captainPhone);
     return;
   }

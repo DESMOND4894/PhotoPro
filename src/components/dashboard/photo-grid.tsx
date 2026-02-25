@@ -15,18 +15,18 @@ export function PhotoGrid({ photos, maxDisplay = 12 }: PhotoGridProps) {
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
         {displayPhotos.map((url, i) => (
           <div
             key={i}
-            className="relative aspect-square overflow-hidden rounded-lg bg-[var(--secondary)]"
+            className="relative aspect-square overflow-hidden rounded-lg bg-slate-100"
           >
             <Image
               src={url}
               alt={`Trip photo ${i + 1}`}
               fill
               className="object-cover"
-              sizes="(max-width: 640px) 33vw, 25vw"
+              sizes="(max-width: 640px) 25vw, 16vw"
             />
           </div>
         ))}
@@ -35,7 +35,7 @@ export function PhotoGrid({ photos, maxDisplay = 12 }: PhotoGridProps) {
       {!showAll && remaining > 0 && (
         <button
           onClick={() => setShowAll(true)}
-          className="mt-2 text-sm font-medium text-[var(--primary)] hover:underline"
+          className="mt-2 text-sm font-medium text-blue-600 hover:underline"
         >
           +{remaining} more photos
         </button>
@@ -44,7 +44,7 @@ export function PhotoGrid({ photos, maxDisplay = 12 }: PhotoGridProps) {
       {showAll && photos.length > maxDisplay && (
         <button
           onClick={() => setShowAll(false)}
-          className="mt-2 text-sm font-medium text-[var(--primary)] hover:underline"
+          className="mt-2 text-sm font-medium text-blue-600 hover:underline"
         >
           Show less
         </button>

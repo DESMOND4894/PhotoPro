@@ -98,7 +98,7 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
                 onUpdate={setCaption}
               />
             ) : (
-              <div className="bg-slate-50 rounded-lg px-4 py-3 text-sm text-slate-700 leading-relaxed border border-slate-200">
+              <div style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }} className="bg-slate-50 rounded-lg px-4 py-3 text-sm text-slate-700 leading-relaxed border border-slate-200">
                 {caption}
               </div>
             )}
@@ -106,7 +106,7 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
         )}
 
         {/* Platform Toggles */}
-        <div className="mb-5">
+        <div className="mb-8">
           <p className="text-sm font-medium text-slate-700 mb-3">Publish To</p>
           <PlatformToggles
             enabled={platforms}
@@ -137,20 +137,25 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
 
         {/* Actions */}
         {isActionable && (
-          <div className="flex items-center gap-3 pt-2">
+          <div
+            style={{ marginTop: "20px", paddingTop: "12px" }}
+            className="flex flex-col items-start gap-2"
+          >
             <button
               onClick={handleApprove}
               disabled={approving || platforms.length === 0}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+              className="inline-flex min-w-[260px] items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-emerald-600 py-2.5 pl-6 pr-12 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-50"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              {approving ? "Approving\u2026" : "Approve & Post"}
+              <span className="whitespace-nowrap">
+                {approving ? "Approving\u2026" : "Approve & Post"}
+              </span>
             </button>
             <button
               onClick={handleSkip}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors"
+              className="inline-flex items-center gap-2 whitespace-nowrap px-5 py-2.5 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors"
             >
               Skip
             </button>

@@ -20,16 +20,16 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-64 bg-[var(--sidebar-bg)] text-white flex flex-col z-40">
       {/* Logo */}
-      <div className="px-6 py-6 border-b border-slate-700">
+      <div className="px-8 py-6 border-b border-slate-700">
         <h1 className="text-xl font-bold tracking-tight">Photo Pro</h1>
         <p className="text-slate-400 text-sm mt-0.5">Celtic Quest Fishing Fleet</p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-5 py-6 space-y-2">
         <a
           href="/dashboard"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors ${
             isQueue
               ? "bg-slate-700/60 text-white font-medium"
               : "text-slate-300 hover:bg-slate-800 hover:text-white"
@@ -42,7 +42,7 @@ export function Sidebar() {
         </a>
         <a
           href="/dashboard/history"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors ${
             isHistory
               ? "bg-slate-700/60 text-white font-medium"
               : "text-slate-300 hover:bg-slate-800 hover:text-white"

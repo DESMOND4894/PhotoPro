@@ -41,7 +41,7 @@ export default function LoginPage() {
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email,
       {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `https://photo-pro-mu.vercel.app/reset-password`,
       }
     );
 

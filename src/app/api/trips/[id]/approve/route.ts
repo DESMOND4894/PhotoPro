@@ -83,5 +83,16 @@ export async function POST(
     );
   }
 
+  // Trigger publish cron immediately (fire-and-forget)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const cronSecret = process.env.CRON_SECRET;
+  if (appUrl && cronSecret) {
+    fetch(`${appUrl}/api/cron/publish`, {
+      headers: { Authorization: `Bearer ${cronSecret}` },
+    }).catch((err) => {
+      console.error("[APPROVE] Failed to trigger publish cron:", err);
+    });
+  }
+
   return NextResponse.json({ status: "approved", trip_id: id });
 }

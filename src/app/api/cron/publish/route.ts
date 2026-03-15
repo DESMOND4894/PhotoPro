@@ -106,6 +106,9 @@ export async function GET(request: NextRequest) {
         case "instagram": {
           const ids = await postInstagramCarousel(trip);
           platformPostId = ids[0] || null;
+          if (!platformPostId) {
+            throw new Error("Instagram returned no post ID — publishing likely failed");
+          }
           break;
         }
         case "tiktok":

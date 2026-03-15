@@ -5,7 +5,7 @@ import { sanitizeApiError } from "@/lib/utils/sanitize";
 const GRAPH_API_URL = "https://graph.facebook.com/v21.0";
 
 function getAccessToken(): string {
-  return process.env.META_PAGE_ACCESS_TOKEN!;
+  return process.env.META_USER_ACCESS_TOKEN || process.env.META_PAGE_ACCESS_TOKEN!;
 }
 
 function getIgAccountId(): string {

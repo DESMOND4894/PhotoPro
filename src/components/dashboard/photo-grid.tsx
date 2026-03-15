@@ -15,18 +15,18 @@ export function PhotoGrid({ photos, maxDisplay = 12 }: PhotoGridProps) {
 
   return (
     <div>
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
         {displayPhotos.map((url, i) => (
           <div
             key={i}
-            className="relative aspect-square overflow-hidden rounded-lg bg-slate-100"
+            className="relative h-24 overflow-hidden rounded-lg bg-slate-100"
           >
             <Image
               src={url}
               alt={`Trip photo ${i + 1}`}
               fill
               className="object-cover"
-              sizes="(max-width: 640px) 25vw, 16vw"
+              sizes="(max-width: 640px) 33vw, 16vw"
             />
           </div>
         ))}

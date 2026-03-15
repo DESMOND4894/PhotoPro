@@ -72,9 +72,9 @@ export function CaptionEditor({ tripId, caption, onUpdate }: CaptionEditorProps)
 
   return (
     <div>
-      <p className="text-sm text-[var(--foreground)] leading-relaxed">
-        &ldquo;{caption}&rdquo;
-      </p>
+      <div style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }} className="bg-slate-50 rounded-lg px-4 py-3 text-sm text-slate-700 leading-relaxed border border-slate-200">
+        {caption}
+      </div>
       <div className="mt-2 flex gap-2">
         <button
           onClick={() => setEditing(true)}

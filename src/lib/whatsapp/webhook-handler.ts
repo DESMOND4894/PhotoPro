@@ -62,9 +62,14 @@ export async function handleIncomingPhoto(
       // "posted"/"skipped"/"failed" = old batch done, start fresh.
       // "pending"/"approved"/"posting" = captain is adding more photos,
       //   so the old caption is stale and the batch needs to restart.
-      // IMPORTANT: Delete old posting_log entries first to prevent stale publishes
+      // IMPORTANT: Delete old photos and posting_log entries to start fresh
       await supabase
         .from("posting_log")
+        .delete()
+        .eq("trip_id", tripId);
+
+      await supabase
+        .from("photos")
         .delete()
         .eq("trip_id", tripId);
 

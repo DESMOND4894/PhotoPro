@@ -63,8 +63,8 @@ export async function POST(
 
   const schedules: Record<string, number> = {
     facebook: 0,
-    instagram: 30,
-    tiktok: 60,
+    instagram: 0,
+    tiktok: 0,
   };
 
   for (const platform of platformsEnabled) {

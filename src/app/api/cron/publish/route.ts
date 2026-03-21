@@ -176,6 +176,28 @@ export async function GET(request: NextRequest) {
           error_message: errorMessage,
         })
         .eq("id", post.id);
+
+      // Check if all platforms are now done (posted or failed)
+      const { data: allLogs } = await supabase
+        .from("posting_log")
+        .select("status")
+        .eq("trip_id", trip.id);
+
+      if (allLogs?.every((l) => l.status === "posted")) {
+        await supabase
+          .from("trips")
+          .update({ status: "posted" })
+          .eq("id", trip.id);
+      } else if (
+        allLogs?.every((l) => l.status === "posted" || l.status === "failed")
+      ) {
+        // All platforms attempted — mark posted if any succeeded, failed if none did
+        const anyPosted = allLogs.some((l) => l.status === "posted");
+        await supabase
+          .from("trips")
+          .update({ status: anyPosted ? "posted" : "failed" })
+          .eq("id", trip.id);
+      }
     }
   }
 

@@ -41,7 +41,9 @@ export async function GET(request: NextRequest) {
     // Exchange for long-lived token (60 days)
     const longLived = await exchangeForLongLivedToken(shortLived.access_token);
     const userToken = longLived.access_token;
-    const expiresAt = new Date(Date.now() + longLived.expires_in * 1000).toISOString();
+    // Default to 60 days if expires_in is missing or zero
+    const expiresInSeconds = longLived.expires_in || 60 * 24 * 60 * 60;
+    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString();
 
     // Fetch user info, pages, and permissions
     const [userInfo, pages, permissions] = await Promise.all([

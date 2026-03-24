@@ -1,15 +1,8 @@
 import type { Trip } from "@/lib/types";
 import { sanitizeApiError } from "@/lib/utils/sanitize";
+import { getFacebookPageToken } from "@/lib/social/tokens";
 
 const GRAPH_API_URL = "https://graph.facebook.com/v21.0";
-
-function getPageAccessToken(): string {
-  return process.env.META_PAGE_ACCESS_TOKEN!;
-}
-
-function getPageId(): string {
-  return process.env.META_PAGE_ID!;
-}
 
 /**
  * Post a photo album to Facebook Page.
@@ -17,8 +10,7 @@ function getPageId(): string {
  * 2. Create a feed post that references all photos (creates an album)
  */
 export async function postFacebookAlbum(trip: Trip): Promise<string> {
-  const token = getPageAccessToken();
-  const pageId = getPageId();
+  const { token, pageId } = await getFacebookPageToken();
 
   // Step 1: Upload each photo as unpublished
   const photoIds: string[] = [];

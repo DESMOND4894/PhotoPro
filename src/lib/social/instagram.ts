@@ -1,16 +1,9 @@
 import type { Trip } from "@/lib/types";
 import { generatePlatformVariant } from "@/lib/ai/caption-generator";
 import { sanitizeApiError } from "@/lib/utils/sanitize";
+import { getInstagramCredentials } from "@/lib/social/tokens";
 
 const GRAPH_API_URL = "https://graph.facebook.com/v21.0";
-
-function getAccessToken(): string {
-  return process.env.META_USER_ACCESS_TOKEN || process.env.META_PAGE_ACCESS_TOKEN!;
-}
-
-function getIgAccountId(): string {
-  return process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID!;
-}
 
 /**
  * Post Instagram carousel(s).
@@ -33,8 +26,10 @@ export async function postInstagramCarousel(trip: Trip): Promise<string[]> {
     trip.caption ||
     (await generatePlatformVariant(trip, "instagram"));
 
+  const { token, igAccountId: igId } = await getInstagramCredentials();
+
   for (const chunk of chunks) {
-    const postId = await postSingleCarousel(chunk, caption);
+    const postId = await postSingleCarousel(chunk, caption, token, igId);
     if (postId) postIds.push(postId);
   }
 
@@ -43,10 +38,10 @@ export async function postInstagramCarousel(trip: Trip): Promise<string[]> {
 
 async function postSingleCarousel(
   photoUrls: string[],
-  caption: string
+  caption: string,
+  token: string,
+  igId: string,
 ): Promise<string | null> {
-  const token = getAccessToken();
-  const igId = getIgAccountId();
 
   // Step 1: Create media containers for each image
   const containerIds: string[] = [];
@@ -89,7 +84,7 @@ async function postSingleCarousel(
 
     if (!response.ok) return null;
     const data = await response.json();
-    return await publishContainer(data.id);
+    return await publishContainer(data.id, token, igId);
   }
 
   // Step 2: Create carousel container
@@ -112,15 +107,12 @@ async function postSingleCarousel(
   const carouselData = await carouselResponse.json();
 
   // Step 3: Publish
-  return await publishContainer(carouselData.id);
+  return await publishContainer(carouselData.id, token, igId);
 }
 
-async function publishContainer(containerId: string): Promise<string> {
-  const token = getAccessToken();
-  const igId = getIgAccountId();
-
+async function publishContainer(containerId: string, token: string, igId: string): Promise<string> {
   // Wait for container to be ready (Instagram processes async)
-  await waitForContainerReady(containerId);
+  await waitForContainerReady(containerId, token);
 
   const response = await fetch(`${GRAPH_API_URL}/${igId}/media_publish`, {
     method: "POST",
@@ -143,9 +135,9 @@ async function publishContainer(containerId: string): Promise<string> {
 
 async function waitForContainerReady(
   containerId: string,
+  token: string,
   maxAttempts = 12
 ): Promise<void> {
-  const token = getAccessToken();
   let delay = 2000; // Start at 2 seconds
 
   for (let i = 0; i < maxAttempts; i++) {

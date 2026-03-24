@@ -27,11 +27,13 @@ export async function GET(request: NextRequest) {
   // Verify CSRF state
   const savedState = request.cookies.get("fb_oauth_state")?.value;
   if (!savedState || savedState !== state) {
+    console.error("CSRF state mismatch", { savedState: !!savedState, stateParam: !!state });
     return NextResponse.redirect(`${origin}/admin/connect?error=invalid_state`);
   }
 
   try {
     const redirectUri = `${origin}/api/auth/facebook/callback`;
+    console.log("OAuth callback: exchanging code, redirectUri:", redirectUri);
 
     // Exchange code for short-lived token
     const shortLived = await exchangeCodeForToken(code, redirectUri);
@@ -98,7 +100,8 @@ export async function GET(request: NextRequest) {
     response.cookies.delete("fb_oauth_state");
     return response;
   } catch (err) {
-    console.error("Facebook OAuth callback error:", err);
-    return NextResponse.redirect(`${origin}/admin/connect?error=exchange_failed`);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Facebook OAuth callback error:", message);
+    return NextResponse.redirect(`${origin}/admin/connect?error=exchange_failed&detail=${encodeURIComponent(message)}`);
   }
 }

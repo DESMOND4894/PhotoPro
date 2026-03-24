@@ -28,6 +28,7 @@ function ConnectPageInner() {
   const searchParams = useSearchParams();
   const success = searchParams.get("success");
   const error = searchParams.get("error");
+  const detail = searchParams.get("detail");
 
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +89,8 @@ function ConnectPageInner() {
       )}
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-          {errorMessages[error] || "Something went wrong. Please try again."}
+          <p>{errorMessages[error] || "Something went wrong. Please try again."}</p>
+          {detail && <p className="mt-1 text-xs text-red-600 font-mono">{detail}</p>}
         </div>
       )}
 

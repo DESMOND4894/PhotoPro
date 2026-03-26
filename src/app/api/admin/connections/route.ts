@@ -23,7 +23,30 @@ export async function DELETE(request: Request) {
   }
 
   const supabase = createServiceClient();
-  const { error } = await supabase.from("social_connections").delete().eq("id", id);
+
+  // Fetch the connection to get the token for revoking
+  const { data: connection } = await supabase
+    .from("social_connections")
+    .select("access_token, platform_user_id")
+    .eq("id", id)
+    .single();
+
+  // Revoke the token on Facebook's side
+  if (connection?.access_token) {
+    try {
+      const revokeRes = await fetch(
+        `https://graph.facebook.com/v21.0/${connection.platform_user_id}/permissions?access_token=${connection.access_token}`,
+        { method: "DELETE" }
+      );
+      const revokeData = await revokeRes.json();
+      console.log("Facebook permission revoke:", revokeData);
+    } catch (err) {
+      console.error("Failed to revoke Facebook permissions:", err);
+    }
+  }
+
+  // Delete all connections (revoking one revokes all)
+  const { error } = await supabase.from("social_connections").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -27,6 +27,22 @@ export interface Trip {
   updated_at: string;
   last_photo_at: string | null;
   batch_complete: boolean;
+  public_enabled: boolean;
+  public_slug: string | null;
+  public_published_at: string | null;
+  public_cover_photo_id: string | null;
+  public_title: string | null;
+  public_subtitle: string | null;
+  public_crew_note: string | null;
+  show_public_crew_note: boolean;
+  public_review_url: string | null;
+  public_tag_us_text: string | null;
+  public_tag_us_url: string | null;
+  public_book_again_url: string | null;
+  public_copy_caption: string | null;
+  public_copy_hashtags: string | null;
+  featured_photo_ids: string[];
+  public_species_tags: string[];
 }
 
 export interface Photo {

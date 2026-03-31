@@ -60,6 +60,22 @@ export async function PATCH(
     "caption_tiktok",
     "status",
     "platforms_enabled",
+    "public_enabled",
+    "public_slug",
+    "public_published_at",
+    "public_cover_photo_id",
+    "public_title",
+    "public_subtitle",
+    "public_crew_note",
+    "show_public_crew_note",
+    "public_review_url",
+    "public_tag_us_text",
+    "public_tag_us_url",
+    "public_book_again_url",
+    "public_copy_caption",
+    "public_copy_hashtags",
+    "featured_photo_ids",
+    "public_species_tags",
   ];
 
   const updates: Record<string, unknown> = {};

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Trip, SocialPlatform } from "@/lib/types";
 import { formatTripLabel } from "@/lib/types";
+
 import { StatusBadge } from "./status-badge";
 import { PlatformToggles } from "./platform-toggles";
 import { PhotoGrid } from "./photo-grid";
@@ -19,6 +20,38 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
     trip.platforms_enabled
   );
   const [caption, setCaption] = useState(trip.caption || "");
+
+  // Portal publish panel state
+  const [portalOpen, setPortalOpen] = useState(false);
+  const [portalEnabled, setPortalEnabled] = useState(trip.public_enabled ?? false);
+  const [portalSlug, setPortalSlug] = useState(trip.public_slug ?? "");
+  const [portalTitle, setPortalTitle] = useState(trip.public_title ?? "");
+  const [portalReviewUrl, setPortalReviewUrl] = useState(trip.public_review_url ?? "");
+  const [portalSaving, setPortalSaving] = useState(false);
+  const [portalSaved, setPortalSaved] = useState(false);
+
+  async function handlePortalSave() {
+    setPortalSaving(true);
+    setPortalSaved(false);
+    const payload: Record<string, unknown> = {
+      public_enabled: portalEnabled,
+      public_slug: portalSlug || null,
+      public_title: portalTitle || null,
+      public_review_url: portalReviewUrl || null,
+    };
+    if (portalEnabled && !payload.public_published_at) {
+      payload.public_published_at = new Date().toISOString();
+    }
+    await fetch(`/api/trips/${trip.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setPortalSaving(false);
+    setPortalSaved(true);
+    setTimeout(() => setPortalSaved(false), 2500);
+    onUpdate();
+  }
 
   const isPending = trip.status === "pending" || trip.status === "skipped";
   const isActionable = isPending;
@@ -167,6 +200,113 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
           <p className="mt-3 text-xs text-slate-400">
             Weather: {trip.weather_summary}
           </p>
+        )}
+      </div>
+
+      {/* Portal Publish Panel */}
+      <div className="border-t border-slate-100">
+        <button
+          type="button"
+          onClick={() => setPortalOpen((v) => !v)}
+          className="flex w-full items-center justify-between px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <span>Customer Portal</span>
+            {portalEnabled && (
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                Published
+              </span>
+            )}
+          </span>
+          <span className="text-slate-400">{portalOpen ? "▲" : "▼"}</span>
+        </button>
+
+        {portalOpen && (
+          <div className="px-6 pb-5 space-y-4 bg-slate-50 border-t border-slate-100">
+            <div className="flex items-center gap-3 pt-4">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={portalEnabled}
+                onClick={() => setPortalEnabled((v) => !v)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                  portalEnabled ? "bg-emerald-600" : "bg-slate-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                    portalEnabled ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+              <span className="text-sm font-medium text-slate-700">
+                {portalEnabled ? "Publicly visible" : "Private (default)"}
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Slug (URL path)
+              </label>
+              <input
+                type="text"
+                value={portalSlug}
+                onChange={(e) => setPortalSlug(e.target.value)}
+                placeholder={trip.public_slug ?? "auto-generated"}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
+              />
+              {portalSlug && (
+                <a
+                  href={`/photos/trips/${portalSlug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 inline-block text-xs text-teal-600 underline"
+                >
+                  Preview →
+                </a>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Public Title
+              </label>
+              <input
+                type="text"
+                value={portalTitle}
+                onChange={(e) => setPortalTitle(e.target.value)}
+                placeholder="Leave blank to use default"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Review URL
+              </label>
+              <input
+                type="url"
+                value={portalReviewUrl}
+                onChange={(e) => setPortalReviewUrl(e.target.value)}
+                placeholder="Leave blank to use default"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handlePortalSave}
+                disabled={portalSaving}
+                className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-50 transition-colors"
+              >
+                {portalSaving ? "Saving…" : "Save Portal Settings"}
+              </button>
+              {portalSaved && (
+                <span className="text-xs font-medium text-emerald-600">Saved</span>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

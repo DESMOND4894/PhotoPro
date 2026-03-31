@@ -28,14 +28,14 @@ export default async function PhotosPage() {
   const trips = await listPublishedTrips(18);
 
   return (
-    <div className="min-h-screen bg-[#faf8f4]">
+    <div className="min-h-screen overflow-x-hidden bg-[#faf8f4]">
       {/* ─── Hero ─── */}
-      <section className="bg-[linear-gradient(150deg,#0b1d2e_0%,#0e3347_45%,#0d4a52_100%)]">
+      <section className="overflow-hidden bg-[linear-gradient(150deg,#0b1d2e_0%,#0e3347_45%,#0d4a52_100%)]">
         <div className="mx-auto max-w-6xl px-5 pb-16 pt-14 sm:pb-20 sm:pt-16 lg:px-8">
           <p className="font-body text-[11px] font-semibold uppercase tracking-[0.45em] text-amber-400">
             Celtic Quest · Port Jefferson, NY
           </p>
-          <h1 className="font-display mt-5 max-w-xl text-5xl font-bold leading-[1.08] tracking-tight text-white sm:text-6xl lg:text-7xl">
+          <h1 className="font-display mt-5 max-w-xl break-words text-[2.25rem] font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-7xl">
             Your Catch.<br />Your Photos.
           </h1>
           <p className="mt-6 max-w-lg font-body text-[15px] leading-7 text-white/65 sm:text-base sm:leading-8">

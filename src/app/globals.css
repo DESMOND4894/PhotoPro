@@ -51,11 +51,8 @@
   }
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* Tailwind v4 preflight handles box-sizing + reset automatically.
+   Do NOT add * { padding: 0 } here — it overrides Tailwind utility classes. */
 
 body {
   background-color: var(--background);

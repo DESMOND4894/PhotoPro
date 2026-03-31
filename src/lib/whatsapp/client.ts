@@ -1,4 +1,5 @@
 import type { WhatsAppSendMessagePayload, WhatsAppMediaResponse } from "./types";
+import { logWhatsAppMessage } from "./message-log";
 
 const WHATSAPP_API_URL = "https://graph.facebook.com/v21.0";
 
@@ -45,6 +46,15 @@ export async function sendTextMessage(to: string, body: string): Promise<void> {
     method: "POST",
     body: JSON.stringify(payload),
   });
+
+  const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
+  await logWhatsAppMessage({
+    direction: "outbound",
+    recipientPhone: to,
+    messageType: "text",
+    content: body,
+    isCaptain: to === captainPhone,
+  });
 }
 
 export async function sendInteractiveButtons(
@@ -71,6 +81,15 @@ export async function sendInteractiveButtons(
   await whatsappFetch("messages", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+
+  const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
+  await logWhatsAppMessage({
+    direction: "outbound",
+    recipientPhone: to,
+    messageType: "interactive",
+    content: body,
+    isCaptain: to === captainPhone,
   });
 }
 

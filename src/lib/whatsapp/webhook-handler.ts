@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { downloadMedia, sendTextMessage } from "./client";
+import { logWhatsAppMessage } from "./message-log";
 import type { WhatsAppMessage, BoatName, TripTime } from "@/lib/types";
 import { getBoatSlug } from "@/lib/types";
 
@@ -30,8 +31,20 @@ export async function handleIncomingPhoto(
   senderPhone: string,
   groupId?: string
 ): Promise<void> {
+  const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
   const supabase = createServiceClient();
   const boat = getBoatForSender(groupId || senderPhone);
+
+  // Log inbound photo
+  await logWhatsAppMessage({
+    direction: "inbound",
+    senderPhone,
+    messageType: "image",
+    content: `Photo from ${boat || "unknown"}`,
+    whatsappMessageId: message.id,
+    mediaId: message.image?.id,
+    isCaptain: senderPhone === captainPhone,
+  });
 
   if (!boat) {
     console.log(`Unknown sender/group: ${groupId || senderPhone}, ignoring photo`);
@@ -176,7 +189,6 @@ export async function handleIncomingPhoto(
   );
 
   // Only notify on the first photo — don't spam 20 messages for 20 photos
-  const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
   if (senderPhone === captainPhone && updatedUrls.length === 1) {
     await sendTextMessage(
       captainPhone,
@@ -196,6 +208,17 @@ export async function handleIncomingText(
 
   // Check if this is from the captain FIRST (approval flow)
   const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
+
+  // Log inbound text
+  await logWhatsAppMessage({
+    direction: "inbound",
+    senderPhone,
+    messageType: "text",
+    content: text,
+    whatsappMessageId: message.id,
+    isCaptain: senderPhone === captainPhone && !groupId,
+  });
+
   if (senderPhone === captainPhone && !groupId) {
     const { handleCaptainResponse } = await import("./captain-handler");
     await handleCaptainResponse(text, senderPhone);
@@ -228,6 +251,17 @@ export async function handleIncomingReaction(
   senderPhone: string
 ): Promise<void> {
   const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
+
+  // Log inbound reaction
+  await logWhatsAppMessage({
+    direction: "inbound",
+    senderPhone,
+    messageType: "reaction",
+    content: message.reaction?.emoji || "",
+    whatsappMessageId: message.id,
+    isCaptain: senderPhone === captainPhone,
+  });
+
   if (senderPhone !== captainPhone) return;
 
   const emoji = message.reaction?.emoji;

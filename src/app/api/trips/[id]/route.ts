@@ -102,3 +102,28 @@ export async function PATCH(
 
   return NextResponse.json({ trip: data });
 }
+
+// DELETE /api/trips/[id] — delete trip and related records
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Delete related records first (foreign key constraints)
+  await supabase.from("posting_log").delete().eq("trip_id", id);
+  await supabase.from("photos").delete().eq("trip_id", id);
+  const { error } = await supabase.from("trips").delete().eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}

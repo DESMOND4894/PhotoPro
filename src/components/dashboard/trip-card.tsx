@@ -53,7 +53,7 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
     onUpdate();
   }
 
-  const isPending = trip.status === "pending" || trip.status === "skipped";
+  const isPending = trip.status === "pending";
   const isActionable = isPending;
 
   async function handleApprove() {
@@ -76,6 +76,12 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "skipped" }),
     });
+    onUpdate();
+  }
+
+  async function handleDelete() {
+    if (!confirm("Delete this trip and all its photos?")) return;
+    await fetch(`/api/trips/${trip.id}`, { method: "DELETE" });
     onUpdate();
   }
 
@@ -105,7 +111,18 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
             )}
           </p>
         </div>
-        <StatusBadge status={trip.status} />
+        <div className="flex items-center gap-2">
+          <StatusBadge status={trip.status} />
+          <button
+            onClick={handleDelete}
+            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+            title="Delete trip"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Card Body */}

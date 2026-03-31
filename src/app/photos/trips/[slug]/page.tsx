@@ -21,7 +21,7 @@ export default async function PublicTripPage(
       <div className="mx-auto max-w-6xl px-4 pt-5 sm:px-6 lg:px-8">
         <Link
           href="/photos"
-          className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 py-2 font-body text-sm font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-400 hover:text-slate-800"
+          className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 py-2 font-sans text-sm font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-400 hover:text-slate-800"
         >
           <svg className="h-3.5 w-3.5" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="8,2 4,6 8,10" />

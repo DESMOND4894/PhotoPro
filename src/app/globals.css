@@ -2,8 +2,8 @@
 @source "../components";
 
 @theme inline {
-  --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
-  --font-body: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+  --font-heading: var(--font-playfair), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
 }
 
 :root {

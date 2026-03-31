@@ -32,13 +32,13 @@ export default async function PhotosPage() {
       {/* ─── Hero ─── */}
       <section className="overflow-hidden bg-[linear-gradient(150deg,#0b1d2e_0%,#0e3347_45%,#0d4a52_100%)]">
         <div className="mx-auto max-w-6xl px-5 pb-16 pt-14 sm:pb-20 sm:pt-16 lg:px-8">
-          <p className="font-body text-[11px] font-semibold uppercase tracking-[0.45em] text-amber-400">
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.45em] text-amber-400">
             Celtic Quest · Port Jefferson, NY
           </p>
-          <h1 className="font-display mt-5 max-w-xl break-words text-[2.25rem] font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-7xl">
+          <h1 className="font-heading mt-5 max-w-xl break-words text-[2.25rem] font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-7xl">
             Your Catch.<br />Your Photos.
           </h1>
-          <p className="mt-6 max-w-lg font-body text-[15px] leading-7 text-white/65 sm:text-base sm:leading-8">
+          <p className="mt-6 max-w-lg font-sans text-[15px] leading-7 text-white/65 sm:text-base sm:leading-8">
             Every photo the crew shot on your charter, organized by trip and ready to download. Find your charter below — free, no account needed.
           </p>
           <div className="mt-8 flex flex-wrap gap-2.5">
@@ -49,7 +49,7 @@ export default async function PhotosPage() {
             ].map(({ label }) => (
               <span
                 key={label}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.07] px-4 py-2 font-body text-sm text-white/75"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.07] px-4 py-2 font-sans text-sm text-white/75"
               >
                 <svg className="h-3.5 w-3.5 text-teal-400" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="2,6 5,9 10,3" />
@@ -65,15 +65,15 @@ export default async function PhotosPage() {
       <section className="mx-auto max-w-6xl px-5 py-12 lg:px-8">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="font-body text-[11px] font-semibold uppercase tracking-[0.4em] text-teal-700">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.4em] text-teal-700">
               Recent Charters
             </p>
-            <h2 className="font-display mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">
+            <h2 className="font-heading mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">
               Find Your Trip
             </h2>
           </div>
           {trips.length > 0 && (
-            <p className="font-body text-sm text-slate-500">
+            <p className="font-sans text-sm text-slate-500">
               {trips.length} published {trips.length === 1 ? "trip" : "trips"}
             </p>
           )}
@@ -82,10 +82,10 @@ export default async function PhotosPage() {
         {trips.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-8 py-16 text-center">
             <AnchorIcon />
-            <h3 className="font-display mx-auto mt-5 max-w-xs text-2xl font-bold text-slate-800">
+            <h3 className="font-heading mx-auto mt-5 max-w-xs text-2xl font-bold text-slate-800">
               No trips published yet
             </h3>
-            <p className="mx-auto mt-3 max-w-sm font-body text-sm leading-6 text-slate-500">
+            <p className="mx-auto mt-3 max-w-sm font-sans text-sm leading-6 text-slate-500">
               Your photos will appear here once the captain publishes them after your charter. Check back soon.
             </p>
           </div>
@@ -114,12 +114,12 @@ export default async function PhotosPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
                   {/* Badges */}
                   <div className="absolute left-3 top-3">
-                    <span className="rounded-full bg-black/50 px-3 py-1 font-body text-[11px] font-semibold text-white backdrop-blur-sm">
+                    <span className="rounded-full bg-black/50 px-3 py-1 font-sans text-[11px] font-semibold text-white backdrop-blur-sm">
                       {trip.timeLabel}
                     </span>
                   </div>
                   <div className="absolute right-3 top-3">
-                    <span className="rounded-full bg-white/90 px-3 py-1 font-body text-[11px] font-semibold text-slate-800">
+                    <span className="rounded-full bg-white/90 px-3 py-1 font-sans text-[11px] font-semibold text-slate-800">
                       {trip.photoCount} photos
                     </span>
                   </div>
@@ -127,13 +127,13 @@ export default async function PhotosPage() {
 
                 {/* Card body */}
                 <div className="px-5 pb-3 pt-5">
-                  <p className="font-body text-[11px] font-semibold uppercase tracking-[0.3em] text-amber-600">
+                  <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.3em] text-amber-600">
                     {formatTripDate(trip.tripDate)}
                   </p>
-                  <h3 className="font-display mt-2 text-xl font-bold leading-snug text-slate-900 sm:text-2xl">
+                  <h3 className="font-heading mt-2 text-xl font-bold leading-snug text-slate-900 sm:text-2xl">
                     {trip.publicTitle}
                   </h3>
-                  <p className="mt-1.5 font-body text-sm leading-6 text-slate-500">
+                  <p className="mt-1.5 font-sans text-sm leading-6 text-slate-500">
                     {trip.publicSubtitle}
                   </p>
                   {trip.speciesTags.length > 0 && (
@@ -141,7 +141,7 @@ export default async function PhotosPage() {
                       {trip.speciesTags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-amber-50 px-2.5 py-0.5 font-body text-xs font-medium text-amber-900"
+                          className="rounded-full bg-amber-50 px-2.5 py-0.5 font-sans text-xs font-medium text-amber-900"
                         >
                           {tag}
                         </span>
@@ -152,7 +152,7 @@ export default async function PhotosPage() {
 
                 {/* Card footer */}
                 <div className="mt-3 border-t border-slate-100 px-5 py-3">
-                  <span className="font-body text-sm font-semibold text-teal-700 transition-colors group-hover:text-teal-800">
+                  <span className="font-sans text-sm font-semibold text-teal-700 transition-colors group-hover:text-teal-800">
                     View gallery →
                   </span>
                 </div>
@@ -166,10 +166,10 @@ export default async function PhotosPage() {
       <footer className="border-t border-slate-200 bg-white/50">
         <div className="mx-auto max-w-6xl px-5 py-8 lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="font-body text-sm font-semibold text-slate-700">
+            <p className="font-sans text-sm font-semibold text-slate-700">
               Celtic Quest Fishing Fleet
             </p>
-            <p className="font-body text-xs text-slate-400">
+            <p className="font-sans text-xs text-slate-400">
               Port Jefferson, Long Island, NY
             </p>
           </div>

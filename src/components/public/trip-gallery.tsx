@@ -136,29 +136,29 @@ export function TripGallery({ trip }: TripGalleryProps) {
       {/* ─── Trip Header ─── */}
       <section className="bg-[linear-gradient(150deg,#0b1d2e_0%,#0e3347_50%,#0d4a52_100%)] px-4 pb-10 pt-7 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <p className="font-body text-[11px] font-semibold uppercase tracking-[0.4em] text-amber-400">
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.4em] text-amber-400">
             Celtic Quest Photo Portal
           </p>
-          <h1 className="font-display mt-4 max-w-2xl text-4xl font-bold leading-tight text-white sm:text-5xl">
+          <h1 className="font-heading mt-4 max-w-2xl text-4xl font-bold leading-tight text-white sm:text-5xl">
             {trip.publicTitle}
           </h1>
-          <p className="mt-3 max-w-xl font-body text-sm leading-6 text-white/65 sm:text-base">
+          <p className="mt-3 max-w-xl font-sans text-sm leading-6 text-white/65 sm:text-base">
             {trip.publicSubtitle}
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <span className="rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 font-body text-xs font-medium text-white/80">
+            <span className="rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 font-sans text-xs font-medium text-white/80">
               {formatTripDate(trip.tripDate)}
             </span>
-            <span className="rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 font-body text-xs font-medium text-white/80">
+            <span className="rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 font-sans text-xs font-medium text-white/80">
               {trip.timeLabel}
             </span>
-            <span className="rounded-full border border-teal-400/30 bg-teal-400/15 px-3.5 py-1.5 font-body text-xs font-medium text-teal-300">
+            <span className="rounded-full border border-teal-400/30 bg-teal-400/15 px-3.5 py-1.5 font-sans text-xs font-medium text-teal-300">
               {trip.photoCount} {trip.photoCount === 1 ? "photo" : "photos"}
             </span>
             {trip.speciesTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full border border-amber-400/25 bg-amber-400/15 px-3.5 py-1.5 font-body text-xs font-medium text-amber-300"
+                className="rounded-full border border-amber-400/25 bg-amber-400/15 px-3.5 py-1.5 font-sans text-xs font-medium text-amber-300"
               >
                 {tag}
               </span>
@@ -273,8 +273,8 @@ export function TripGallery({ trip }: TripGalleryProps) {
                 <IconStar />
               </span>
               <div>
-                <p className="font-body text-sm font-semibold text-white">Leave a review</p>
-                <p className="mt-0.5 font-body text-xs leading-5 text-white/55">
+                <p className="font-sans text-sm font-semibold text-white">Leave a review</p>
+                <p className="mt-0.5 font-sans text-xs leading-5 text-white/55">
                   Tell Celtic Quest how the trip went.
                 </p>
               </div>
@@ -285,8 +285,8 @@ export function TripGallery({ trip }: TripGalleryProps) {
                 <IconStar />
               </span>
               <div>
-                <p className="font-body text-sm font-semibold text-slate-500">Review link</p>
-                <p className="mt-0.5 font-body text-xs leading-5 text-slate-400">Not configured yet.</p>
+                <p className="font-sans text-sm font-semibold text-slate-500">Review link</p>
+                <p className="mt-0.5 font-sans text-xs leading-5 text-slate-400">Not configured yet.</p>
               </div>
             </div>
           )}
@@ -302,8 +302,8 @@ export function TripGallery({ trip }: TripGalleryProps) {
                 <IconCamera />
               </span>
               <div>
-                <p className="font-body text-sm font-semibold text-amber-950">{trip.tagUsText}</p>
-                <p className="mt-0.5 font-body text-xs leading-5 text-amber-950/60">
+                <p className="font-sans text-sm font-semibold text-amber-950">{trip.tagUsText}</p>
+                <p className="mt-0.5 font-sans text-xs leading-5 text-amber-950/60">
                   Tag Celtic Quest when you share your catch.
                 </p>
               </div>
@@ -318,8 +318,8 @@ export function TripGallery({ trip }: TripGalleryProps) {
                 <IconShare />
               </span>
               <div>
-                <p className="font-body text-sm font-semibold text-amber-950">Share this gallery</p>
-                <p className="mt-0.5 font-body text-xs leading-5 text-amber-950/60">
+                <p className="font-sans text-sm font-semibold text-amber-950">Share this gallery</p>
+                <p className="mt-0.5 font-sans text-xs leading-5 text-amber-950/60">
                   Send your friends the link to this trip.
                 </p>
               </div>
@@ -337,8 +337,8 @@ export function TripGallery({ trip }: TripGalleryProps) {
                 <IconAnchor />
               </span>
               <div>
-                <p className="font-body text-sm font-semibold text-white">Book your next trip</p>
-                <p className="mt-0.5 font-body text-xs leading-5 text-white/55">
+                <p className="font-sans text-sm font-semibold text-white">Book your next trip</p>
+                <p className="mt-0.5 font-sans text-xs leading-5 text-white/55">
                   Head back out on the water.
                 </p>
               </div>
@@ -353,8 +353,8 @@ export function TripGallery({ trip }: TripGalleryProps) {
                 <IconShare />
               </span>
               <div>
-                <p className="font-body text-sm font-semibold text-white">Share this gallery</p>
-                <p className="mt-0.5 font-body text-xs leading-5 text-white/55">
+                <p className="font-sans text-sm font-semibold text-white">Share this gallery</p>
+                <p className="mt-0.5 font-sans text-xs leading-5 text-white/55">
                   Send friends the link to your trip.
                 </p>
               </div>
@@ -365,17 +365,17 @@ export function TripGallery({ trip }: TripGalleryProps) {
         {/* ─── Crew note ─── */}
         {trip.crewNote && (
           <section className="mt-5 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4">
-            <p className="font-body text-[11px] font-semibold uppercase tracking-[0.3em] text-teal-700">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.3em] text-teal-700">
               Crew Note
             </p>
-            <p className="mt-2 font-body text-sm leading-6 text-teal-950">{trip.crewNote}</p>
+            <p className="mt-2 font-sans text-sm leading-6 text-teal-950">{trip.crewNote}</p>
           </section>
         )}
 
         {/* ─── Social copy tools ─── */}
         {(trip.copyCaption || trip.copyHashtags) && (
           <section className="mt-5 rounded-2xl border border-slate-200 bg-white px-5 py-4">
-            <p className="font-body text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">
               Share your catch
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -383,7 +383,7 @@ export function TripGallery({ trip }: TripGalleryProps) {
                 <button
                   type="button"
                   onClick={() => copyText(trip.copyCaption!, "Caption")}
-                  className="rounded-full border border-slate-300 bg-slate-50 px-4 py-2 font-body text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                  className="rounded-full border border-slate-300 bg-slate-50 px-4 py-2 font-sans text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
                 >
                   Copy caption
                 </button>
@@ -392,7 +392,7 @@ export function TripGallery({ trip }: TripGalleryProps) {
                 <button
                   type="button"
                   onClick={() => copyText(trip.copyHashtags!, "Hashtags")}
-                  className="rounded-full border border-slate-300 bg-slate-50 px-4 py-2 font-body text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                  className="rounded-full border border-slate-300 bg-slate-50 px-4 py-2 font-sans text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
                 >
                   Copy hashtags
                 </button>
@@ -400,7 +400,7 @@ export function TripGallery({ trip }: TripGalleryProps) {
               <button
                 type="button"
                 onClick={() => shareTrip(tripShareUrl, trip.publicTitle)}
-                className="rounded-full border border-slate-300 bg-slate-50 px-4 py-2 font-body text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                className="rounded-full border border-slate-300 bg-slate-50 px-4 py-2 font-sans text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
               >
                 Share trip link
               </button>
@@ -412,8 +412,8 @@ export function TripGallery({ trip }: TripGalleryProps) {
         <section className="mt-8">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="font-display text-2xl font-bold text-slate-900">Trip Gallery</h2>
-              <p className="mt-0.5 font-body text-sm text-slate-500">
+              <h2 className="font-heading text-2xl font-bold text-slate-900">Trip Gallery</h2>
+              <p className="mt-0.5 font-sans text-sm text-slate-500">
                 Tap any photo to view full-size and download.
               </p>
             </div>
@@ -421,7 +421,7 @@ export function TripGallery({ trip }: TripGalleryProps) {
 
           {trip.photos.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-12 text-center">
-              <p className="font-body text-sm text-slate-500">No photos available yet.</p>
+              <p className="font-sans text-sm text-slate-500">No photos available yet.</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
@@ -441,12 +441,12 @@ export function TripGallery({ trip }: TripGalleryProps) {
                   />
                   {/* Hover overlay */}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors duration-200 group-hover:bg-black/35">
-                    <span className="font-body text-sm font-semibold text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <span className="font-sans text-sm font-semibold text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                       View
                     </span>
                   </div>
                   {/* Photo number */}
-                  <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/50 px-1.5 py-0.5 font-body text-[10px] font-medium text-white/80 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/50 px-1.5 py-0.5 font-sans text-[10px] font-medium text-white/80 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                     {index + 1}
                   </span>
                 </button>
@@ -458,7 +458,7 @@ export function TripGallery({ trip }: TripGalleryProps) {
 
       {/* ─── Toast ─── */}
       {message && (
-        <div className="fixed inset-x-4 bottom-6 z-50 mx-auto max-w-sm rounded-full bg-slate-900 px-5 py-3 text-center font-body text-sm font-medium text-white shadow-2xl sm:left-auto sm:right-6 sm:inset-x-auto">
+        <div className="fixed inset-x-4 bottom-6 z-50 mx-auto max-w-sm rounded-full bg-slate-900 px-5 py-3 text-center font-sans text-sm font-medium text-white shadow-2xl sm:left-auto sm:right-6 sm:inset-x-auto">
           {message}
         </div>
       )}
@@ -470,8 +470,8 @@ export function TripGallery({ trip }: TripGalleryProps) {
             {/* Lightbox header */}
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-6">
               <div>
-                <p className="font-body text-sm font-semibold text-white/90">{trip.publicTitle}</p>
-                <p className="font-body text-xs text-white/40">
+                <p className="font-sans text-sm font-semibold text-white/90">{trip.publicTitle}</p>
+                <p className="font-sans text-xs text-white/40">
                   {selectedIndex + 1} of {trip.photos.length}
                 </p>
               </div>
@@ -533,14 +533,14 @@ export function TripGallery({ trip }: TripGalleryProps) {
                 <button
                   type="button"
                   onClick={() => shareTrip(photoShareUrl, `${trip.publicTitle} photo`)}
-                  className="flex h-10 items-center gap-1.5 rounded-full border border-white/15 px-4 font-body text-sm text-white/70 transition-colors hover:border-white/30 hover:text-white"
+                  className="flex h-10 items-center gap-1.5 rounded-full border border-white/15 px-4 font-sans text-sm text-white/70 transition-colors hover:border-white/30 hover:text-white"
                 >
                   <IconShare />
                   <span className="hidden sm:inline">Share</span>
                 </button>
                 <a
                   href={`/api/public/photos/${selectedPhoto.id}/download`}
-                  className="flex h-10 items-center gap-1.5 rounded-full bg-amber-400 px-5 font-body text-sm font-semibold text-slate-950 transition-opacity hover:opacity-90"
+                  className="flex h-10 items-center gap-1.5 rounded-full bg-amber-400 px-5 font-sans text-sm font-semibold text-slate-950 transition-opacity hover:opacity-90"
                 >
                   <IconDownload />
                   Download

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @source "../components";
+@source "../app";
 
 @theme inline {
   --font-heading: var(--font-playfair), Georgia, "Times New Roman", serif;

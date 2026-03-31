@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 // GET /api/trips/[id] — get a single trip with photos
 export async function GET(
@@ -109,14 +109,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Delete related records first (foreign key constraints)
+  // Use service client to bypass RLS for delete operations
+  const supabase = createServiceClient();
   await supabase.from("posting_log").delete().eq("trip_id", id);
   await supabase.from("photos").delete().eq("trip_id", id);
   const { error } = await supabase.from("trips").delete().eq("id", id);

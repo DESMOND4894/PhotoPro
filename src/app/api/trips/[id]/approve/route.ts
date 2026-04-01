@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { generateTripPublicSlug } from "@/lib/public-portal";
 
 // POST /api/trips/[id]/approve — approve a trip for publishing
 export async function POST(
@@ -44,12 +45,16 @@ export async function POST(
       .eq("id", id);
   }
 
-  // Update status to approved
+  // Update status to approved + auto-publish to customer portal
+  const publicSlug = trip.public_slug || generateTripPublicSlug(trip.boat, trip.date, trip.trip_time);
   await serviceClient
     .from("trips")
     .update({
       status: "approved",
       approved_at: new Date().toISOString(),
+      public_enabled: true,
+      public_slug: publicSlug,
+      public_published_at: new Date().toISOString(),
     })
     .eq("id", id);
 

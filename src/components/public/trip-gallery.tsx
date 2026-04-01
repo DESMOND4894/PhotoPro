@@ -326,40 +326,22 @@ export function TripGallery({ trip }: TripGalleryProps) {
             </button>
           )}
 
-          {trip.bookAgainUrl ? (
-            <a
-              href={trip.bookAgainUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col gap-3 rounded-2xl bg-teal-800 px-5 py-5 text-white transition-opacity hover:opacity-90"
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-teal-300">
-                <IconAnchor />
-              </span>
-              <div>
-                <p className="font-sans text-sm font-semibold text-white">Book your next trip</p>
-                <p className="mt-0.5 font-sans text-xs leading-5 text-white/55">
-                  Head back out on the water.
-                </p>
-              </div>
-            </a>
-          ) : (
-            <button
-              type="button"
-              onClick={() => shareTrip(tripShareUrl, trip.publicTitle)}
-              className="group flex flex-col gap-3 rounded-2xl bg-teal-800 px-5 py-5 text-left text-white transition-opacity hover:opacity-90"
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-teal-300">
-                <IconShare />
-              </span>
-              <div>
-                <p className="font-sans text-sm font-semibold text-white">Share this gallery</p>
-                <p className="mt-0.5 font-sans text-xs leading-5 text-white/55">
-                  Send friends the link to your trip.
-                </p>
-              </div>
-            </button>
-          )}
+          <a
+            href={trip.bookAgainUrl || "https://www.celticquestfishing.com"}
+            target="_blank"
+            rel="noreferrer"
+            className="group flex flex-col gap-3 rounded-2xl bg-teal-800 px-5 py-5 text-white transition-opacity hover:opacity-90"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-teal-300">
+              <IconAnchor />
+            </span>
+            <div>
+              <p className="font-sans text-sm font-semibold text-white">Book your next trip</p>
+              <p className="mt-0.5 font-sans text-xs leading-5 text-white/55">
+                Head back out on the water with Celtic Quest.
+              </p>
+            </div>
+          </a>
         </section>
 
         {/* ─── Crew note ─── */}

@@ -188,28 +188,16 @@ export function TripGallery({ trip }: TripGalleryProps) {
             <p className="mt-0.5 font-sans text-[0.72rem] leading-relaxed text-slate-500">Send the link to friends and family.</p>
           </button>
 
-          {trip.bookAgainUrl ? (
-            <a
-              href={trip.bookAgainUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#0b1d2e] to-[#134e5e] p-5 text-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_35px_rgba(0,0,0,0.15)]"
-            >
-              <span className="text-[1.75rem]">&#9875;</span>
-              <h3 className="mt-2 font-sans text-[0.9rem] font-bold">Book Your Next Trip</h3>
-              <p className="mt-0.5 font-sans text-[0.72rem] leading-relaxed text-white/55">Ready for another adventure?</p>
-            </a>
-          ) : (
-            <button
-              type="button"
-              onClick={() => shareTrip(tripShareUrl, trip.publicTitle)}
-              className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#0b1d2e] to-[#134e5e] p-5 text-left text-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_35px_rgba(0,0,0,0.15)]"
-            >
-              <span className="text-[1.75rem]">&#128279;</span>
-              <h3 className="mt-2 font-sans text-[0.9rem] font-bold">Share This Gallery</h3>
-              <p className="mt-0.5 font-sans text-[0.72rem] leading-relaxed text-white/55">Send friends the link to your trip.</p>
-            </button>
-          )}
+          <a
+            href={trip.bookAgainUrl || "https://celticquestfishing.com"}
+            target="_blank"
+            rel="noreferrer"
+            className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#0b1d2e] to-[#134e5e] p-5 text-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_35px_rgba(0,0,0,0.15)]"
+          >
+            <span className="text-[1.75rem]">&#9875;</span>
+            <h3 className="mt-2 font-sans text-[0.9rem] font-bold">Book Your Next Trip</h3>
+            <p className="mt-0.5 font-sans text-[0.72rem] leading-relaxed text-white/55">Ready for another adventure?</p>
+          </a>
         </div>
 
         {/* ─── Download All bar ─── */}

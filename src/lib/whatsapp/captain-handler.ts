@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendTextMessage, sendPostingConfirmation } from "./client";
 import type { Trip } from "@/lib/types";
+import { generateTripPublicSlug } from "@/lib/public-portal";
 
 export async function handleCaptainResponse(
   text: string,
@@ -42,6 +43,18 @@ export async function handleCaptainResponse(
   // Skip the latest pending batch
   if (normalizedText === "skip" || normalizedText === "no" || normalizedText === "pass") {
     await skipLatestPending(supabase, captainPhone);
+    return;
+  }
+
+  // HIDE — remove current trip from customer portal
+  if (normalizedText === "hide" || normalizedText === "private") {
+    await hideFromPortal(supabase, captainPhone);
+    return;
+  }
+
+  // SHOW — re-enable current trip on customer portal
+  if (normalizedText === "show" || normalizedText === "unhide") {
+    await showOnPortal(supabase, captainPhone);
     return;
   }
 
@@ -105,12 +118,12 @@ async function sendStatus(
 ): Promise<void> {
   const { data: receiving } = await supabase
     .from("trips")
-    .select("boat, trip_time, photo_count")
+    .select("boat, trip_time, photo_count, public_enabled")
     .eq("status", "receiving");
 
   const { data: pending } = await supabase
     .from("trips")
-    .select("boat, trip_time, photo_count")
+    .select("boat, trip_time, photo_count, public_enabled")
     .eq("status", "pending");
 
   let msg = "";
@@ -118,7 +131,8 @@ async function sendStatus(
   if (receiving && receiving.length > 0) {
     msg += "📷 Photos waiting:\n";
     for (const t of receiving) {
-      msg += `• ${t.boat} ${t.trip_time}: ${t.photo_count} photos\n`;
+      const portal = t.public_enabled ? "🌐" : "🔒";
+      msg += `• ${t.boat} ${t.trip_time}: ${t.photo_count} photos ${portal}\n`;
     }
     msg += "\nType PROCESS when ready.\n\n";
   }
@@ -126,13 +140,16 @@ async function sendStatus(
   if (pending && pending.length > 0) {
     msg += "📝 Ready for approval:\n";
     for (const t of pending) {
-      msg += `• ${t.boat} ${t.trip_time}: ${t.photo_count} photos\n`;
+      const portal = t.public_enabled ? "🌐" : "🔒";
+      msg += `• ${t.boat} ${t.trip_time}: ${t.photo_count} photos ${portal}\n`;
     }
     msg += "\nType OK to approve.";
   }
 
   if (!msg) {
     msg = "Nothing in the queue. Send some photos!";
+  } else {
+    msg += "\n\n🌐 = live on portal  🔒 = hidden";
   }
 
   await sendTextMessage(captainPhone, msg);
@@ -291,6 +308,67 @@ async function skipLatestPending(
   await sendTextMessage(
     captainPhone,
     `Skipped ${trip.boat} ${trip.trip_time}. You can approve it later from the dashboard.`
+  );
+}
+
+async function hideFromPortal(
+  supabase: ReturnType<typeof createServiceClient>,
+  captainPhone: string
+): Promise<void> {
+  const { data: trip } = await supabase
+    .from("trips")
+    .select("id, boat, trip_time, public_enabled")
+    .in("status", ["receiving", "pending", "approved"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!trip) {
+    await sendTextMessage(captainPhone, "No active trip to hide.");
+    return;
+  }
+
+  await supabase
+    .from("trips")
+    .update({ public_enabled: false })
+    .eq("id", trip.id);
+
+  await sendTextMessage(
+    captainPhone,
+    `🔒 Hidden from portal: ${trip.boat} ${trip.trip_time}. Photos are still saved — type SHOW to make it visible again.`
+  );
+}
+
+async function showOnPortal(
+  supabase: ReturnType<typeof createServiceClient>,
+  captainPhone: string
+): Promise<void> {
+  const { data: trip } = await supabase
+    .from("trips")
+    .select("id, boat, trip_time, date, public_slug")
+    .in("status", ["receiving", "pending", "approved"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!trip) {
+    await sendTextMessage(captainPhone, "No active trip to show.");
+    return;
+  }
+
+  const slug = trip.public_slug || generateTripPublicSlug(trip.boat, trip.date, trip.trip_time);
+  await supabase
+    .from("trips")
+    .update({
+      public_enabled: true,
+      public_slug: slug,
+      public_published_at: new Date().toISOString(),
+    })
+    .eq("id", trip.id);
+
+  await sendTextMessage(
+    captainPhone,
+    `🌐 Now visible on portal: ${trip.boat} ${trip.trip_time}. Type HIDE to remove.`
   );
 }
 

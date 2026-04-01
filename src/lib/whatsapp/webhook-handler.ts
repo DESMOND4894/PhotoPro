@@ -3,6 +3,7 @@ import { downloadMedia, sendTextMessage } from "./client";
 import { logWhatsAppMessage } from "./message-log";
 import type { WhatsAppMessage, BoatName, TripTime } from "@/lib/types";
 import { getBoatSlug } from "@/lib/types";
+import { generateTripPublicSlug } from "@/lib/public-portal";
 
 // Map WhatsApp group JIDs to boat names (configured via env)
 function getBoatForSender(from: string): BoatName | null {
@@ -99,6 +100,10 @@ export async function handleIncomingPhoto(
           batch_complete: false,
           approved_at: null,
           posted_to: [],
+          // Live portal: re-enable portal for new batch
+          public_enabled: true,
+          public_slug: existingTrip.public_slug || generateTripPublicSlug(boat, date, tripTime),
+          public_published_at: existingTrip.public_published_at || new Date().toISOString(),
         })
         .eq("id", tripId);
     }
@@ -110,6 +115,10 @@ export async function handleIncomingPhoto(
         date,
         trip_time: tripTime,
         status: "receiving",
+        // Live portal: auto-publish to customer portal immediately
+        public_enabled: true,
+        public_slug: generateTripPublicSlug(boat, date, tripTime),
+        public_published_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -190,9 +199,12 @@ export async function handleIncomingPhoto(
 
   // Only notify on the first photo — don't spam 20 messages for 20 photos
   if (senderPhone === captainPhone && updatedUrls.length === 1) {
+    const slug = generateTripPublicSlug(boat, date, tripTime);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+    const portalLink = appUrl ? `\n🔗 ${appUrl}/photos/trips/${slug}` : "";
     await sendTextMessage(
       captainPhone,
-      `📸 Photos coming in for ${boat}. Type PROCESS when you're done sending.`
+      `📸 Photos coming in for ${boat} — live on customer portal now.${portalLink}\nType PROCESS when you're done sending.\nType HIDE to remove from portal.`
     );
   }
 }

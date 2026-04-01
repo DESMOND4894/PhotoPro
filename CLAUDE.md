@@ -81,7 +81,8 @@ Current behavior:
 - If trip is "posted"/"skipped"/"failed" → reset to "receiving" (new batch)
 - If trip is ANY other status → just add the photo (no blocking)
 - Download from WhatsApp → upload to Supabase Storage → save record → recompute photo_urls
-- Send captain a confirmation message
+- **Live Portal: trip auto-publishes to customer portal on creation/reset** (`public_enabled=true`, slug generated)
+- Send captain a confirmation message (includes portal link + HIDE option)
 
 ### 2. Captain Command Matching (captain-handler.ts)
 **Status: WORKING. Commands are case-insensitive.**
@@ -94,7 +95,9 @@ Current behavior:
 | edit | Prompt for custom caption |
 | new, redo | Regenerate AI caption |
 | skip, no, pass | Skip the trip |
-| status | Show queue |
+| hide, private | Remove current trip from customer portal |
+| show, unhide | Re-enable current trip on customer portal |
+| status | Show queue (🌐 = portal live, 🔒 = hidden) |
 | *(anything else)* | Set as custom caption |
 
 ### 3. Custom Caption Flow (captain-handler.ts)
@@ -150,6 +153,25 @@ posted_to → []
 - Processes each platform independently (one failure doesn't stop others)
 - Trip goes to "posted" when all platforms done, "failed" if any failed
 
+### 8. Live Portal (auto-publish)
+**Status: WORKING. Portal and social publishing are DECOUPLED.**
+
+Photos appear on the customer portal in real-time as they arrive via WhatsApp.
+No captain action needed — `public_enabled` is set to `true` on trip creation/reset.
+
+**Two lanes from same photo dump:**
+- **Lane 1 (Portal):** Automatic. Photos visible at `/photos/trips/{slug}` immediately.
+- **Lane 2 (Social):** Captain types PROCESS → OK → posts to Facebook/Instagram/TikTok.
+
+**Safety valves:**
+- Captain types HIDE → removes trip from portal
+- Captain types SHOW → re-enables on portal
+- Dashboard: per-photo delete buttons on each photo thumbnail (permanent deletion)
+- Dashboard: portal toggle in Customer Portal panel
+
+**DO NOT re-couple portal visibility to the social approval flow.**
+Portal goes live at photo arrival, social goes live at captain approval. These are independent.
+
 ---
 
 ## KNOWN ISSUES (Not fixed yet)
@@ -163,6 +185,8 @@ posted_to → []
 4. **Tokens expire.** WhatsApp access token expires in ~1-2 hours. Need to create a permanent System User token.
 
 5. **Meta App Review not submitted.** App is in Development mode. Need to record screencast and write permission descriptions.
+
+6. **Vercel domain mismatch.** `photo-pro.vercel.app` belongs to someone else's project. Our actual production URL is `https://photo-pro-mu.vercel.app`. All Meta Developer Console URLs must use this domain.
 
 ---
 

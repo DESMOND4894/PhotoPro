@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Trip, SocialPlatform } from "@/lib/types";
 import { formatTripLabel } from "@/lib/types";
 
@@ -21,6 +21,23 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
     trip.platforms_enabled
   );
   const [caption, setCaption] = useState(trip.caption || "");
+
+  // Photo records with IDs for per-photo deletion
+  const [photoItems, setPhotoItems] = useState<{ id: string; url: string }[]>([]);
+
+  useEffect(() => {
+    // Fetch photo records to get IDs for deletion
+    if (trip.photo_count > 0) {
+      fetch(`/api/trips/${trip.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.photos) {
+            setPhotoItems(data.photos.map((p: { id: string; public_url: string }) => ({ id: p.id, url: p.public_url })));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [trip.id, trip.photo_count]);
 
   // Portal publish panel state
   const [portalOpen, setPortalOpen] = useState(false);
@@ -134,7 +151,11 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
             <p className="text-sm font-medium text-slate-700 mb-3">
               {trip.photo_count} Photos
             </p>
-            <PhotoGrid photos={trip.photo_urls} />
+            <PhotoGrid
+              photos={photoItems.length > 0 ? photoItems : trip.photo_urls}
+              tripId={trip.id}
+              onPhotoDeleted={onUpdate}
+            />
           </div>
         )}
 

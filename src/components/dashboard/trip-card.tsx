@@ -8,6 +8,7 @@ import { StatusBadge } from "./status-badge";
 import { PlatformToggles } from "./platform-toggles";
 import { PhotoGrid } from "./photo-grid";
 import { CaptionEditor } from "./caption-editor";
+import { EngagementMetrics } from "./engagement-metrics";
 
 interface TripCardProps {
   trip: Trip;
@@ -164,6 +165,9 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
             disabled={!isActionable}
           />
         </div>
+
+        {/* Engagement Metrics (for posted trips) */}
+        {trip.status === "posted" && <EngagementMetrics tripId={trip.id} />}
 
         {/* Posted to indicators */}
         {trip.posted_to.length > 0 && (

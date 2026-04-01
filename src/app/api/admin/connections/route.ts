@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 export async function GET() {
+  const auth = await createClient();
+  const { data: { user } } = await auth.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const supabase = createServiceClient();
 
   const { data, error } = await supabase
@@ -17,6 +23,12 @@ export async function GET() {
 }
 
 export async function DELETE(request: Request) {
+  const auth = await createClient();
+  const { data: { user } } = await auth.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await request.json();
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });

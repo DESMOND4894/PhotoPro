@@ -28,12 +28,12 @@ export async function GET(
     })
   );
 
-  const files = photoResults
-    .filter(
-      (r): r is PromiseFulfilledResult<{ name: string; data: Uint8Array }> =>
-        r.status === "fulfilled" && r.value !== null
-    )
-    .map((r) => r.value);
+  const files: { name: string; data: Uint8Array }[] = [];
+  for (const r of photoResults) {
+    if (r.status === "fulfilled" && r.value !== null) {
+      files.push(r.value);
+    }
+  }
 
   if (files.length === 0) {
     return NextResponse.json({ error: "No photos available" }, { status: 404 });

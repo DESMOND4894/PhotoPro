@@ -116,8 +116,19 @@ export function TripGallery({ trip }: TripGalleryProps) {
   return (
     <div className="pb-16">
       {/* ─── Trip Header ─── */}
-      <section className="bg-[linear-gradient(150deg,#0b1d2e_0%,#0e3347_45%,#0d4a52_100%)] px-5 pb-10 pt-6 lg:px-8">
-        <div className="mx-auto max-w-6xl">
+      <section className="relative overflow-hidden px-5 pb-10 pt-6 lg:px-8" style={{ minHeight: "clamp(240px, 35vw, 360px)" }}>
+        <div className="absolute inset-0">
+          <Image
+            src="/images/fleet-hero.jpg"
+            alt="Celtic Quest Fleet"
+            fill
+            className="object-cover"
+            sizes="100vw"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[rgba(11,29,46,0.6)] to-[rgba(11,29,46,0.9)]" />
+        </div>
+        <div className="relative z-10 mx-auto max-w-6xl">
           <Link
             href="/photos"
             className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/8 px-4 py-2 font-sans text-[0.8rem] font-semibold text-white/70 transition-all hover:bg-white/15 hover:text-white"

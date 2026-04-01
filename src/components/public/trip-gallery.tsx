@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { startTransition, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { PublicTripDetail } from "@/lib/public-portal";
@@ -16,14 +17,6 @@ function IconStar() {
   return (
     <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-    </svg>
-  );
-}
-
-function IconCamera() {
-  return (
-    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-      <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
     </svg>
   );
 }
@@ -82,15 +75,6 @@ export function TripGallery({ trip }: TripGalleryProps) {
     });
   }
 
-  async function copyText(value: string, label: string) {
-    try {
-      await navigator.clipboard.writeText(value);
-      setMessage(`${label} copied`);
-    } catch {
-      setMessage(`Could not copy ${label.toLowerCase()}`);
-    }
-  }
-
   async function shareTrip(url: string, title: string) {
     try {
       if (navigator.share) {
@@ -129,276 +113,116 @@ export function TripGallery({ trip }: TripGalleryProps) {
   const tripShareUrl = baseUrl ? `${baseUrl}${pathname}` : pathname;
   const photoShareUrl = selectedPhoto ? `${tripShareUrl}?photo=${selectedPhoto.id}` : tripShareUrl;
 
-  const hasFeatured = trip.featuredPhotos.length > 0;
-
   return (
     <div className="pb-16">
       {/* ─── Trip Header ─── */}
-      <section className="bg-[linear-gradient(150deg,#0b1d2e_0%,#0e3347_50%,#0d4a52_100%)] px-4 pb-10 pt-7 sm:px-6 lg:px-8">
+      <section className="bg-[linear-gradient(150deg,#0b1d2e_0%,#0e3347_45%,#0d4a52_100%)] px-5 pb-10 pt-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.4em] text-amber-400">
-            Celtic Quest Photo Portal
+          <Link
+            href="/photos"
+            className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/8 px-4 py-2 font-sans text-[0.8rem] font-semibold text-white/70 transition-all hover:bg-white/15 hover:text-white"
+          >
+            <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polyline points="10,3 5,8 10,13" />
+            </svg>
+            All Trips
+          </Link>
+          <p className="font-sans text-[0.65rem] font-semibold uppercase tracking-[0.45em] text-amber-400">
+            {trip.boatLabel}
           </p>
-          <h1 className="font-heading mt-4 max-w-2xl text-4xl font-bold leading-tight text-white sm:text-5xl">
-            {trip.publicTitle}
+          <h1 className="font-heading mt-2 max-w-2xl text-[clamp(1.75rem,4vw,2.75rem)] font-extrabold leading-[1.1] text-white">
+            {trip.timeLabel}<br />{formatTripDate(trip.tripDate)}
           </h1>
-          <p className="mt-3 max-w-xl font-sans text-sm leading-6 text-white/65 sm:text-base">
-            {trip.publicSubtitle}
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <span className="rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 font-sans text-xs font-medium text-white/80">
-              {formatTripDate(trip.tripDate)}
-            </span>
-            <span className="rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 font-sans text-xs font-medium text-white/80">
-              {trip.timeLabel}
-            </span>
-            <span className="rounded-full border border-teal-400/30 bg-teal-400/15 px-3.5 py-1.5 font-sans text-xs font-medium text-teal-300">
-              {trip.photoCount} {trip.photoCount === 1 ? "photo" : "photos"}
-            </span>
-            {trip.speciesTags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-amber-400/25 bg-amber-400/15 px-3.5 py-1.5 font-sans text-xs font-medium text-amber-300"
-              >
-                {tag}
-              </span>
-            ))}
+          <div className="mt-3 flex flex-wrap gap-3">
+            <span className="font-sans text-[0.78rem] text-white/55">{trip.boatLabel}</span>
+            <span className="font-sans text-[0.78rem] text-white/30">&middot;</span>
+            <span className="font-sans text-[0.78rem] text-white/55">Port Jefferson, NY</span>
+            <span className="font-sans text-[0.78rem] text-white/30">&middot;</span>
+            <span className="font-sans text-[0.78rem] text-white/55">{trip.photoCount} photos</span>
           </div>
         </div>
       </section>
 
       {/* ─── Content ─── */}
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-
-        {/* ─── Featured photo mosaic ─── */}
-        {hasFeatured && (
-          <section className="-mt-4 sm:-mt-6">
-            {trip.featuredPhotos.length >= 3 ? (
-              /* Editorial mosaic: 1 big + 2 stacked */
-              <div
-                className="grid gap-2 overflow-hidden rounded-2xl sm:rounded-3xl"
-                style={{ gridTemplateColumns: "2fr 1fr", gridTemplateRows: "1fr 1fr", height: "clamp(240px, 45vw, 480px)" }}
-              >
-                <button
-                  type="button"
-                  onClick={() => updatePhotoParam(trip.featuredPhotos[0].id)}
-                  className="group relative row-span-2 overflow-hidden"
-                >
-                  <Image
-                    src={trip.featuredPhotos[0].thumbnailUrl}
-                    alt={`${trip.publicTitle} – featured`}
-                    fill
-                    className="object-cover transition duration-500 group-hover:scale-103"
-                    sizes="(max-width: 640px) 65vw, 40vw"
-                    priority
-                  />
-                  <div className="absolute inset-0 bg-black/0 transition-colors duration-200 group-hover:bg-black/20" />
-                </button>
-                {trip.featuredPhotos.slice(1, 3).map((photo) => (
-                  <button
-                    key={photo.id}
-                    type="button"
-                    onClick={() => updatePhotoParam(photo.id)}
-                    className="group relative overflow-hidden"
-                  >
-                    <Image
-                      src={photo.thumbnailUrl}
-                      alt={`${trip.publicTitle} – featured`}
-                      fill
-                      className="object-cover transition duration-500 group-hover:scale-103"
-                      sizes="(max-width: 640px) 35vw, 20vw"
-                    />
-                    <div className="absolute inset-0 bg-black/0 transition-colors duration-200 group-hover:bg-black/20" />
-                  </button>
-                ))}
-              </div>
-            ) : trip.featuredPhotos.length === 2 ? (
-              <div
-                className="grid gap-2 overflow-hidden rounded-2xl sm:rounded-3xl"
-                style={{ gridTemplateColumns: "1fr 1fr", height: "clamp(180px, 35vw, 360px)" }}
-              >
-                {trip.featuredPhotos.map((photo) => (
-                  <button
-                    key={photo.id}
-                    type="button"
-                    onClick={() => updatePhotoParam(photo.id)}
-                    className="group relative overflow-hidden"
-                  >
-                    <Image
-                      src={photo.thumbnailUrl}
-                      alt={`${trip.publicTitle} – featured`}
-                      fill
-                      className="object-cover transition duration-500 group-hover:scale-103"
-                      sizes="50vw"
-                    />
-                    <div className="absolute inset-0 bg-black/0 transition-colors duration-200 group-hover:bg-black/20" />
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div
-                className="relative overflow-hidden rounded-2xl sm:rounded-3xl"
-                style={{ height: "clamp(180px, 35vw, 360px)" }}
-              >
-                <button
-                  type="button"
-                  onClick={() => updatePhotoParam(trip.featuredPhotos[0].id)}
-                  className="group absolute inset-0"
-                >
-                  <Image
-                    src={trip.featuredPhotos[0].thumbnailUrl}
-                    alt={`${trip.publicTitle} – featured`}
-                    fill
-                    className="object-cover transition duration-500 group-hover:scale-103"
-                    sizes="100vw"
-                    priority
-                  />
-                  <div className="absolute inset-0 bg-black/0 transition-colors duration-200 group-hover:bg-black/20" />
-                </button>
-              </div>
-            )}
-          </section>
-        )}
+      <div className="mx-auto max-w-6xl px-5 lg:px-8">
 
         {/* ─── Action cards ─── */}
-        <section className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="relative z-10 -mt-6 grid gap-3 sm:grid-cols-3">
           {trip.reviewConfigured ? (
             <a
               href={trip.reviewUrl!}
               target="_blank"
               rel="noreferrer"
-              className="group flex flex-col gap-3 rounded-2xl bg-slate-900 px-5 py-5 text-white transition-opacity hover:opacity-90"
+              className="overflow-hidden rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_35px_rgba(0,0,0,0.15)]"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-amber-400">
-                <IconStar />
-              </span>
-              <div>
-                <p className="font-sans text-sm font-semibold text-white">Leave a review</p>
-                <p className="mt-0.5 font-sans text-xs leading-5 text-white/55">
-                  Tell Celtic Quest how the trip went.
-                </p>
-              </div>
+              <span className="text-[1.75rem]">&#11088;</span>
+              <h3 className="mt-2 font-sans text-[0.9rem] font-bold text-amber-950">Leave a Review</h3>
+              <p className="mt-0.5 font-sans text-[0.72rem] leading-relaxed text-amber-950/60">Your words help other anglers find us.</p>
             </a>
           ) : (
-            <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-200 text-slate-400">
-                <IconStar />
-              </span>
-              <div>
-                <p className="font-sans text-sm font-semibold text-slate-500">Review link</p>
-                <p className="mt-0.5 font-sans text-xs leading-5 text-slate-400">Not configured yet.</p>
-              </div>
+            <div className="overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5">
+              <span className="text-[1.75rem] grayscale">&#11088;</span>
+              <h3 className="mt-2 font-sans text-[0.9rem] font-bold text-slate-400">Review Link</h3>
+              <p className="mt-0.5 font-sans text-[0.72rem] leading-relaxed text-slate-400">Not configured yet.</p>
             </div>
           )}
 
-          {trip.tagUsText && trip.tagUsUrl ? (
+          <button
+            type="button"
+            onClick={() => shareTrip(tripShareUrl, trip.publicTitle)}
+            className="overflow-hidden rounded-2xl border border-black/6 bg-white p-5 text-left shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_35px_rgba(0,0,0,0.15)]"
+          >
+            <span className="text-[1.75rem]">&#128279;</span>
+            <h3 className="mt-2 font-sans text-[0.9rem] font-bold text-slate-900">Share This Gallery</h3>
+            <p className="mt-0.5 font-sans text-[0.72rem] leading-relaxed text-slate-500">Send the link to friends and family.</p>
+          </button>
+
+          {trip.bookAgainUrl ? (
             <a
-              href={trip.tagUsUrl}
+              href={trip.bookAgainUrl}
               target="_blank"
               rel="noreferrer"
-              className="group flex flex-col gap-3 rounded-2xl bg-amber-400 px-5 py-5 transition-opacity hover:opacity-90"
+              className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#0b1d2e] to-[#134e5e] p-5 text-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_35px_rgba(0,0,0,0.15)]"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-950/15 text-amber-950">
-                <IconCamera />
-              </span>
-              <div>
-                <p className="font-sans text-sm font-semibold text-amber-950">{trip.tagUsText}</p>
-                <p className="mt-0.5 font-sans text-xs leading-5 text-amber-950/60">
-                  Tag Celtic Quest when you share your catch.
-                </p>
-              </div>
+              <span className="text-[1.75rem]">&#9875;</span>
+              <h3 className="mt-2 font-sans text-[0.9rem] font-bold">Book Your Next Trip</h3>
+              <p className="mt-0.5 font-sans text-[0.72rem] leading-relaxed text-white/55">Ready for another adventure?</p>
             </a>
           ) : (
             <button
               type="button"
               onClick={() => shareTrip(tripShareUrl, trip.publicTitle)}
-              className="group flex flex-col gap-3 rounded-2xl bg-amber-400 px-5 py-5 text-left transition-opacity hover:opacity-90"
+              className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#0b1d2e] to-[#134e5e] p-5 text-left text-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_35px_rgba(0,0,0,0.15)]"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-950/15 text-amber-950">
-                <IconShare />
-              </span>
-              <div>
-                <p className="font-sans text-sm font-semibold text-amber-950">Share this gallery</p>
-                <p className="mt-0.5 font-sans text-xs leading-5 text-amber-950/60">
-                  Send your friends the link to this trip.
-                </p>
-              </div>
+              <span className="text-[1.75rem]">&#128279;</span>
+              <h3 className="mt-2 font-sans text-[0.9rem] font-bold">Share This Gallery</h3>
+              <p className="mt-0.5 font-sans text-[0.72rem] leading-relaxed text-white/55">Send friends the link to your trip.</p>
             </button>
           )}
+        </div>
 
+        {/* ─── Download All bar ─── */}
+        <div className="mt-5 flex flex-col items-center justify-between gap-3 rounded-2xl bg-[#0b1d2e] px-6 py-4 sm:flex-row">
+          <div>
+            <h3 className="font-sans text-[0.9rem] font-bold text-white">Download All Photos</h3>
+            <p className="font-sans text-[0.75rem] text-white/45">Get every photo from this trip in one zip file.</p>
+          </div>
           <a
-            href={trip.bookAgainUrl || "https://www.celticquestfishing.com"}
-            target="_blank"
-            rel="noreferrer"
-            className="group flex flex-col gap-3 rounded-2xl bg-teal-800 px-5 py-5 text-white transition-opacity hover:opacity-90"
+            href={`/api/public/photos/trips/${trip.slug}/download-all`}
+            className="flex items-center gap-2 rounded-full bg-amber-400 px-6 py-2.5 font-sans text-[0.85rem] font-bold text-[#0b1d2e] transition-colors hover:bg-amber-300"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-teal-300">
-              <IconAnchor />
-            </span>
-            <div>
-              <p className="font-sans text-sm font-semibold text-white">Book your next trip</p>
-              <p className="mt-0.5 font-sans text-xs leading-5 text-white/55">
-                Head back out on the water with Celtic Quest.
-              </p>
-            </div>
+            <IconDownload />
+            Download All
           </a>
-        </section>
-
-        {/* ─── Crew note ─── */}
-        {trip.crewNote && (
-          <section className="mt-5 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4">
-            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.3em] text-teal-700">
-              Crew Note
-            </p>
-            <p className="mt-2 font-sans text-sm leading-6 text-teal-950">{trip.crewNote}</p>
-          </section>
-        )}
-
-        {/* ─── Social copy tools ─── */}
-        {(trip.copyCaption || trip.copyHashtags) && (
-          <section className="mt-5 rounded-2xl border border-slate-200 bg-white px-5 py-4">
-            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-              Share your catch
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {trip.copyCaption && (
-                <button
-                  type="button"
-                  onClick={() => copyText(trip.copyCaption!, "Caption")}
-                  className="rounded-full border border-slate-300 bg-slate-50 px-4 py-2 font-sans text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
-                >
-                  Copy caption
-                </button>
-              )}
-              {trip.copyHashtags && (
-                <button
-                  type="button"
-                  onClick={() => copyText(trip.copyHashtags!, "Hashtags")}
-                  className="rounded-full border border-slate-300 bg-slate-50 px-4 py-2 font-sans text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
-                >
-                  Copy hashtags
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => shareTrip(tripShareUrl, trip.publicTitle)}
-                className="rounded-full border border-slate-300 bg-slate-50 px-4 py-2 font-sans text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
-              >
-                Share trip link
-              </button>
-            </div>
-          </section>
-        )}
+        </div>
 
         {/* ─── Full gallery ─── */}
         <section className="mt-8">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h2 className="font-heading text-2xl font-bold text-slate-900">Trip Gallery</h2>
-              <p className="mt-0.5 font-sans text-sm text-slate-500">
-                Tap any photo to view full-size and download.
-              </p>
-            </div>
+          <div className="mb-4">
+            <h2 className="font-heading text-2xl font-bold text-slate-900">Trip Photos</h2>
+            <p className="mt-0.5 font-sans text-sm text-slate-500">
+              Click any photo to view full-size. Hover to download.
+            </p>
           </div>
 
           {trip.photos.length === 0 ? (
@@ -406,41 +230,82 @@ export function TripGallery({ trip }: TripGalleryProps) {
               <p className="font-sans text-sm text-slate-500">No photos available yet.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+            <div className="columns-2 gap-2.5 sm:columns-3 lg:columns-4">
               {trip.photos.map((photo, index) => (
-                <button
+                <div
                   key={photo.id}
-                  type="button"
+                  className="group relative mb-2.5 cursor-pointer overflow-hidden rounded-[0.875rem] bg-[#d6d3cd] break-inside-avoid"
                   onClick={() => updatePhotoParam(photo.id)}
-                  className="group relative aspect-square overflow-hidden rounded-xl bg-slate-200 sm:rounded-2xl"
                 >
                   <Image
                     src={photo.thumbnailUrl}
                     alt={`${trip.publicTitle} photo ${index + 1}`}
-                    fill
-                    className="object-cover transition duration-300 group-hover:scale-105"
-                    sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                    width={400}
+                    height={400 + (index % 3) * 80}
+                    className="block w-full transition duration-400 group-hover:scale-[1.03]"
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                   />
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors duration-200 group-hover:bg-black/35">
-                    <span className="font-sans text-sm font-semibold text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                      View
-                    </span>
+                  {/* Hover overlay with download */}
+                  <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/50 via-transparent to-transparent p-3 opacity-0 transition-opacity duration-250 group-hover:opacity-100">
+                    <a
+                      href={`/api/public/photos/${photo.id}/download`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 font-sans text-[0.75rem] font-bold text-slate-900 transition-colors hover:bg-amber-400"
+                    >
+                      <IconDownload />
+                      Download
+                    </a>
                   </div>
-                  {/* Photo number */}
-                  <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/50 px-1.5 py-0.5 font-sans text-[10px] font-medium text-white/80 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                    {index + 1}
-                  </span>
-                </button>
+                </div>
               ))}
             </div>
           )}
         </section>
+
+        {/* ─── Bottom action bar ─── */}
+        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <a
+            href={trip.reviewUrl || "#"}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200 px-6 py-5 transition-transform hover:-translate-y-0.5"
+          >
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[14px] bg-amber-900/10 text-amber-800">
+              <IconStar />
+            </span>
+            <div>
+              <p className="font-sans text-[0.95rem] font-bold text-amber-950">Leave a Review</p>
+              <p className="font-sans text-[0.78rem] text-amber-950/60">Tell us how your charter went</p>
+            </div>
+          </a>
+          <a
+            href={trip.bookAgainUrl || "#"}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-[#0b1d2e] to-[#134e5e] px-6 py-5 text-white transition-transform hover:-translate-y-0.5"
+          >
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[14px] bg-white/10 text-teal-300">
+              <IconAnchor />
+            </span>
+            <div>
+              <p className="font-sans text-[0.95rem] font-bold">Book Your Next Trip</p>
+              <p className="font-sans text-[0.78rem] text-white/55">Head back out on the water</p>
+            </div>
+          </a>
+        </div>
       </div>
+
+      {/* ─── Footer ─── */}
+      <footer className="mt-10 border-t border-black/8 bg-white">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5 lg:px-8">
+          <p className="font-sans text-sm font-semibold text-slate-600">Celtic Quest Fishing Fleet</p>
+          <p className="font-sans text-xs text-slate-400">Port Jefferson, Long Island, NY</p>
+        </div>
+      </footer>
 
       {/* ─── Toast ─── */}
       {message && (
-        <div className="fixed inset-x-4 bottom-6 z-50 mx-auto max-w-sm rounded-full bg-slate-900 px-5 py-3 text-center font-sans text-sm font-medium text-white shadow-2xl sm:left-auto sm:right-6 sm:inset-x-auto">
+        <div className="fixed inset-x-4 bottom-6 z-50 mx-auto max-w-sm rounded-full bg-slate-900 px-5 py-3 text-center font-sans text-sm font-medium text-white shadow-2xl sm:inset-x-auto sm:left-auto sm:right-6">
           {message}
         </div>
       )}
@@ -484,7 +349,6 @@ export function TripGallery({ trip }: TripGalleryProps) {
 
             {/* Lightbox controls */}
             <div className="flex items-center justify-between border-t border-white/10 px-4 py-4 sm:px-6">
-              {/* Prev / Next */}
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -510,7 +374,6 @@ export function TripGallery({ trip }: TripGalleryProps) {
                 </button>
               </div>
 
-              {/* Share + Download */}
               <div className="flex items-center gap-2">
                 <button
                   type="button"

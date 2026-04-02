@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServiceClient } from "@/lib/supabase/server";
 
-// Handle TikTok OAuth callback — exchange code for access token
+// Handle TikTok OAuth callback — exchange code for access token and store in DB
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
@@ -32,7 +33,6 @@ export async function GET(request: NextRequest) {
   const redirectUri = `${origin}/api/auth/tiktok/callback`;
 
   try {
-    // Exchange code for access token
     const tokenRes = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -49,45 +49,34 @@ export async function GET(request: NextRequest) {
 
     if (tokenData.error || !tokenData.access_token) {
       console.error("TikTok token exchange failed:", tokenData);
-      return NextResponse.json({
-        error: "Token exchange failed",
-        detail: tokenData,
-      }, { status: 400 });
+      return NextResponse.json({ error: "Token exchange failed", detail: tokenData }, { status: 400 });
     }
 
-    // Show the token to the user so they can copy it
-    // In production, you'd store this in the database instead
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head><title>TikTok Connected</title></head>
-      <body style="font-family: system-ui; max-width: 600px; margin: 50px auto; padding: 20px;">
-        <h1>TikTok Connected!</h1>
-        <p>Copy the access token below and add it to your Vercel environment variables as <code>TIKTOK_ACCESS_TOKEN</code>.</p>
-        <div style="background: #f0f0f0; padding: 16px; border-radius: 8px; word-break: break-all; margin: 16px 0;">
-          <strong>Access Token:</strong><br/>
-          <code id="token">${tokenData.access_token}</code>
-        </div>
-        <p><strong>Open ID:</strong> ${tokenData.open_id || "N/A"}</p>
-        <p><strong>Scope:</strong> ${tokenData.scope || "N/A"}</p>
-        <p><strong>Expires in:</strong> ${tokenData.expires_in ? Math.round(tokenData.expires_in / 3600) + " hours" : "N/A"}</p>
-        ${tokenData.refresh_token ? `
-        <div style="background: #f0f0f0; padding: 16px; border-radius: 8px; word-break: break-all; margin: 16px 0;">
-          <strong>Refresh Token (save this too):</strong><br/>
-          <code>${tokenData.refresh_token}</code>
-        </div>
-        <p><strong>Refresh expires in:</strong> ${tokenData.refresh_expires_in ? Math.round(tokenData.refresh_expires_in / 86400) + " days" : "N/A"}</p>
-        ` : ""}
-        <button onclick="navigator.clipboard.writeText(document.getElementById('token').textContent)" style="padding: 8px 16px; cursor: pointer;">
-          Copy Token
-        </button>
-      </body>
-      </html>
-    `;
+    // Store tokens in social_connections table
+    const supabase = createServiceClient();
+    const expiresAt = tokenData.expires_in
+      ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+      : null;
+    const refreshExpiresAt = tokenData.refresh_expires_in
+      ? new Date(Date.now() + tokenData.refresh_expires_in * 1000).toISOString()
+      : null;
 
-    const response = new NextResponse(html, {
-      headers: { "Content-Type": "text/html" },
-    });
+    await supabase.from("social_connections").upsert(
+      {
+        platform: "tiktok",
+        platform_user_id: tokenData.open_id,
+        platform_name: "TikTok",
+        access_token: tokenData.access_token,
+        token_expires_at: expiresAt,
+        refresh_token: tokenData.refresh_token || null,
+        refresh_token_expires_at: refreshExpiresAt,
+        scopes: tokenData.scope ? tokenData.scope.split(",") : [],
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "platform,platform_user_id" }
+    );
+
+    const response = NextResponse.redirect(`${origin}/admin/connect?tiktok=connected`);
     response.cookies.delete("tiktok_oauth_state");
     return response;
   } catch (err) {

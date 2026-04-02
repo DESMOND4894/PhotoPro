@@ -106,6 +106,8 @@ async function refreshAccessToken(refreshToken: string, openId: string): Promise
 
 /**
  * Post a photo slideshow to TikTok using the Content Posting API.
+ * Uses FILE_UPLOAD method (downloads photos then uploads to TikTok directly)
+ * because PULL_FROM_URL requires domain ownership verification.
  * TikTok's photo post API allows up to 35 images per post.
  */
 export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
@@ -115,9 +117,10 @@ export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
   const caption =
     trip.caption_tiktok || trip.caption || (await generatePlatformVariant(trip, "tiktok"));
 
-  // Step 1: Initialize photo post
   const photoUrls = trip.photo_urls.slice(0, 35); // TikTok max 35 images
+  const photoCount = photoUrls.length;
 
+  // Step 1: Initialize photo post with FILE_UPLOAD source
   const initResponse = await fetch(
     `${TIKTOK_API_URL}/post/publish/content/init/`,
     {
@@ -135,8 +138,9 @@ export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
           disable_stitch: false,
         },
         source_info: {
-          source: "PULL_FROM_URL",
-          photo_images: photoUrls,
+          source: "FILE_UPLOAD",
+          photo_cover_index: 0,
+          photo_images: photoUrls.map((_, i) => `image_${i}.jpg`),
         },
         post_mode: "MEDIA_UPLOAD",
         media_type: "PHOTO",
@@ -144,20 +148,58 @@ export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
     }
   );
 
-  if (!initResponse.ok) {
-    const error = await initResponse.text();
-    console.error(`TikTok init failed:`, sanitizeApiError(error));
-    throw new Error(`TikTok post init failed: ${sanitizeApiError(error)}`);
+  const initText = await initResponse.text();
+  let initData;
+  try {
+    initData = JSON.parse(initText);
+  } catch {
+    throw new Error(`TikTok init returned non-JSON: ${sanitizeApiError(initText)}`);
   }
 
-  const initData = await initResponse.json();
+  if (initData.error?.code) {
+    console.error(`TikTok init failed:`, sanitizeApiError(initText));
+    throw new Error(`TikTok post init failed: ${sanitizeApiError(initText)}`);
+  }
+
   const publishId = initData.data?.publish_id;
+  const uploadUrl = initData.data?.upload_url;
 
   if (!publishId) {
     throw new Error("TikTok did not return a publish ID");
   }
 
-  // Step 2: Check publish status
+  // Step 2: Upload each photo to TikTok's upload endpoint
+  if (uploadUrl) {
+    for (let i = 0; i < photoCount; i++) {
+      console.log(`[TIKTOK] Uploading photo ${i + 1}/${photoCount}`);
+
+      // Download photo from Supabase
+      const photoRes = await fetch(photoUrls[i]);
+      if (!photoRes.ok) {
+        throw new Error(`Failed to download photo ${i}: ${photoRes.status}`);
+      }
+      const photoBuffer = await photoRes.arrayBuffer();
+      const photoBytes = new Uint8Array(photoBuffer);
+
+      // Upload to TikTok
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "image/jpeg",
+          "Content-Range": `bytes 0-${photoBytes.length - 1}/${photoBytes.length}`,
+        },
+        body: photoBytes,
+      });
+
+      if (!uploadRes.ok) {
+        const uploadErr = await uploadRes.text();
+        console.error(`[TIKTOK] Photo upload ${i} failed:`, sanitizeApiError(uploadErr));
+        throw new Error(`TikTok photo upload failed: ${sanitizeApiError(uploadErr)}`);
+      }
+    }
+  }
+
+  // Step 3: Check publish status
   const postId = await waitForTikTokPublish(publishId, token);
 
   console.log(`TikTok slideshow posted: ${postId}`);

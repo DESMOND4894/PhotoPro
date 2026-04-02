@@ -22,7 +22,6 @@ async function getAccessToken(): Promise<string> {
     .single();
 
   if (!connection) {
-    // Fall back to env var (initial setup before DB storage)
     const envToken = process.env.TIKTOK_ACCESS_TOKEN;
     if (!envToken) throw new Error("No TikTok access token found in DB or env");
     return envToken;
@@ -31,7 +30,7 @@ async function getAccessToken(): Promise<string> {
   // Check if token is still valid (with 5 min buffer)
   const expiresAt = connection.token_expires_at
     ? new Date(connection.token_expires_at).getTime()
-    : Infinity;
+    : 0; // Force refresh if no expiry info
   const isExpired = Date.now() > expiresAt - 5 * 60 * 1000;
 
   if (!isExpired) {
@@ -40,7 +39,6 @@ async function getAccessToken(): Promise<string> {
 
   // Token expired — try to refresh
   if (!connection.refresh_token) {
-    // No refresh token — fall back to env var or fail
     const envToken = process.env.TIKTOK_ACCESS_TOKEN;
     if (envToken) return envToken;
     throw new Error("TikTok token expired and no refresh token available");
@@ -50,9 +48,6 @@ async function getAccessToken(): Promise<string> {
   return await refreshAccessToken(connection.refresh_token, connection.platform_user_id);
 }
 
-/**
- * Refresh the TikTok access token using the refresh token.
- */
 async function refreshAccessToken(refreshToken: string, openId: string): Promise<string> {
   const clientKey = process.env.TIKTOK_CLIENT_KEY;
   const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
@@ -79,7 +74,6 @@ async function refreshAccessToken(refreshToken: string, openId: string): Promise
     throw new Error(`TikTok token refresh failed: ${data.error_description || data.error || "unknown"}`);
   }
 
-  // Update stored tokens
   const supabase = createServiceClient();
   const expiresAt = data.expires_in
     ? new Date(Date.now() + data.expires_in * 1000).toISOString()
@@ -105,10 +99,21 @@ async function refreshAccessToken(refreshToken: string, openId: string): Promise
 }
 
 /**
+ * Convert Supabase storage URLs to proxy URLs on our verified domain.
+ * TikTok requires URL ownership verification for PULL_FROM_URL,
+ * so we proxy through our own domain.
+ */
+function toProxyUrls(photoUrls: string[]): string[] {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://photo-pro-mu.vercel.app";
+  return photoUrls.map(
+    (url) => `${appUrl}/api/photos/proxy?url=${encodeURIComponent(url)}`
+  );
+}
+
+/**
  * Post a photo slideshow to TikTok using the Content Posting API.
- * Uses FILE_UPLOAD method (downloads photos then uploads to TikTok directly)
- * because PULL_FROM_URL requires domain ownership verification.
- * TikTok's photo post API allows up to 35 images per post.
+ * Uses PULL_FROM_URL with proxied URLs through our verified domain.
+ * TikTok photo posts support up to 35 images (JPEG/WEBP only, no PNG).
  */
 export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
   const token = await getAccessToken();
@@ -117,32 +122,37 @@ export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
   const caption =
     trip.caption_tiktok || trip.caption || (await generatePlatformVariant(trip, "tiktok"));
 
-  const photoUrls = trip.photo_urls.slice(0, 35); // TikTok max 35 images
-  const photoCount = photoUrls.length;
+  // Proxy photos through our domain for TikTok URL ownership verification
+  const photoUrls = toProxyUrls(trip.photo_urls.slice(0, 35));
 
-  // Step 1: Initialize photo post with FILE_UPLOAD source
+  // TikTok sandbox requires SELF_ONLY privacy; production can use PUBLIC_TO_EVERYONE
+  const isSandbox = !process.env.TIKTOK_PRODUCTION;
+  const privacyLevel = isSandbox ? "SELF_ONLY" : "PUBLIC_TO_EVERYONE";
+
+  console.log(`[TIKTOK] Posting ${photoUrls.length} photos, privacy: ${privacyLevel}`);
+
   const initResponse = await fetch(
     `${TIKTOK_API_URL}/post/publish/content/init/`,
     {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=UTF-8",
       },
       body: JSON.stringify({
         post_info: {
-          title: caption,
-          privacy_level: "PUBLIC_TO_EVERYONE",
-          disable_duet: false,
+          title: caption.slice(0, 90),
+          description: caption.slice(0, 4000),
+          privacy_level: privacyLevel,
           disable_comment: false,
-          disable_stitch: false,
+          auto_add_music: true,
         },
         source_info: {
-          source: "FILE_UPLOAD",
+          source: "PULL_FROM_URL",
           photo_cover_index: 0,
-          photo_images: photoUrls.map((_, i) => `image_${i}.jpg`),
+          photo_images: photoUrls,
         },
-        post_mode: "MEDIA_UPLOAD",
+        post_mode: "DIRECT_POST",
         media_type: "PHOTO",
       }),
     }
@@ -156,53 +166,23 @@ export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
     throw new Error(`TikTok init returned non-JSON: ${sanitizeApiError(initText)}`);
   }
 
-  if (initData.error?.code) {
-    console.error(`TikTok init failed:`, sanitizeApiError(initText));
+  if (initData.error?.code && initData.error.code !== "ok") {
+    console.error(`[TIKTOK] Init failed:`, sanitizeApiError(initText));
     throw new Error(`TikTok post init failed: ${sanitizeApiError(initText)}`);
   }
 
   const publishId = initData.data?.publish_id;
-  const uploadUrl = initData.data?.upload_url;
 
   if (!publishId) {
-    throw new Error("TikTok did not return a publish ID");
+    throw new Error(`TikTok did not return a publish ID. Response: ${sanitizeApiError(initText)}`);
   }
 
-  // Step 2: Upload each photo to TikTok's upload endpoint
-  if (uploadUrl) {
-    for (let i = 0; i < photoCount; i++) {
-      console.log(`[TIKTOK] Uploading photo ${i + 1}/${photoCount}`);
+  console.log(`[TIKTOK] Init success, publish_id: ${publishId}`);
 
-      // Download photo from Supabase
-      const photoRes = await fetch(photoUrls[i]);
-      if (!photoRes.ok) {
-        throw new Error(`Failed to download photo ${i}: ${photoRes.status}`);
-      }
-      const photoBuffer = await photoRes.arrayBuffer();
-      const photoBytes = new Uint8Array(photoBuffer);
-
-      // Upload to TikTok
-      const uploadRes = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "image/jpeg",
-          "Content-Range": `bytes 0-${photoBytes.length - 1}/${photoBytes.length}`,
-        },
-        body: photoBytes,
-      });
-
-      if (!uploadRes.ok) {
-        const uploadErr = await uploadRes.text();
-        console.error(`[TIKTOK] Photo upload ${i} failed:`, sanitizeApiError(uploadErr));
-        throw new Error(`TikTok photo upload failed: ${sanitizeApiError(uploadErr)}`);
-      }
-    }
-  }
-
-  // Step 3: Check publish status
+  // Poll for publish status — TikTok pulls photos from our URLs
   const postId = await waitForTikTokPublish(publishId, token);
 
-  console.log(`TikTok slideshow posted: ${postId}`);
+  console.log(`[TIKTOK] Slideshow posted: ${postId}`);
   return postId;
 }
 
@@ -228,22 +208,23 @@ async function waitForTikTokPublish(
       const data = await response.json();
       const status = data.data?.status;
 
+      console.log(`[TIKTOK] Publish status check ${i + 1}: ${status}`);
+
       if (status === "PUBLISH_COMPLETE") {
         return data.data?.publicly_available_post_id?.[0] || publishId;
       }
 
       if (status === "FAILED") {
-        console.error("TikTok publish failed:", data.data?.fail_reason);
+        console.error("[TIKTOK] Publish failed:", data.data?.fail_reason);
         throw new Error(
           `TikTok publish failed: ${data.data?.fail_reason || "Unknown"}`
         );
       }
     }
 
-    // Wait 5 seconds between checks
     await new Promise((resolve) => setTimeout(resolve, 5000));
   }
 
-  console.warn("TikTok publish status check timed out");
+  console.warn("[TIKTOK] Publish status check timed out");
   return null;
 }

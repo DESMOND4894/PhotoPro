@@ -152,7 +152,7 @@ export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
           photo_cover_index: 0,
           photo_images: photoUrls,
         },
-        post_mode: "MEDIA_UPLOAD",
+        post_mode: "DIRECT_POST",
         media_type: "PHOTO",
       }),
     }

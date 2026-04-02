@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin;
   const redirectUri = `${origin}/api/auth/tiktok/callback`;
   const state = crypto.randomUUID();
-  const scopes = "user.info.basic,video.upload";
+  const scopes = "user.info.basic,video.publish,video.upload";
 
   const url = new URL("https://www.tiktok.com/v2/auth/authorize/");
   url.searchParams.set("client_key", clientKey);

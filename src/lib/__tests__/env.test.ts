@@ -13,6 +13,8 @@ describe("validateEnv", () => {
     vi.stubEnv("WHATSAPP_ACCESS_TOKEN", "test-token");
     vi.stubEnv("WHATSAPP_VERIFY_TOKEN", "test-verify");
     vi.stubEnv("WHATSAPP_CAPTAIN_PHONE", "15551234567");
+    vi.stubEnv("WHATSAPP_GROUP_CELTIC_QUEST_IV", "120363000000000000@g.us");
+    vi.stubEnv("WHATSAPP_GROUP_CELTIC_GRACE", "120363000000000001@g.us");
     vi.stubEnv("META_APP_SECRET", "test-secret");
     vi.stubEnv("CRON_SECRET", "test-cron");
   });

@@ -184,7 +184,7 @@ Portal goes live at photo arrival, social goes live at captain approval. These a
 
 4. **Tokens expire.** WhatsApp access token expires in ~1-2 hours. Need to create a permanent System User token.
 
-5. **Meta App Review not submitted.** App is in Development mode. Need to record screencast and write permission descriptions.
+5. **Meta App Review: approved 2026-04-08 for the scopes the app uses.** Approved: `pages_manage_posts`, `whatsapp_business_messaging`, `pages_show_list`, `instagram_content_publish`, `business_management`, `pages_read_engagement`, `instagram_basic`. Rejected: `instagram_business_basic` — dropped; no OAuth code in this repo ever requested it and no endpoint requires it. Do not resubmit for it.
 
 6. **Vercel domain mismatch.** `photo-pro.vercel.app` belongs to someone else's project. Our actual production URL is `https://photo-pro-mu.vercel.app`. All Meta Developer Console URLs must use this domain.
 

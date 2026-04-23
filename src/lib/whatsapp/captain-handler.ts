@@ -1,77 +1,82 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendTextMessage, sendPostingConfirmation } from "./client";
-import type { Trip } from "@/lib/types";
+import type { Trip, BoatName } from "@/lib/types";
 import { generateTripPublicSlug } from "@/lib/public-portal";
 
+// `currentBoat` is the boat whose chat the captain typed in (so generic replies
+// come back through the same WhatsApp conversation). Trip-specific replies use
+// `trip.boat` so each trip's confirmation lands in that trip's chat.
 export async function handleCaptainResponse(
   text: string,
-  captainPhone: string
+  captainPhone: string,
+  currentBoat: BoatName
 ): Promise<void> {
   const supabase = createServiceClient();
   const normalizedText = text.trim().toLowerCase();
 
   // PROCESS — gather all "receiving" photos, generate caption, send for review
   if (normalizedText === "process" || normalizedText === "ready" || normalizedText === "post") {
-    await processReceivingTrips(supabase, captainPhone);
+    await processReceivingTrips(supabase, captainPhone, currentBoat);
     return;
   }
 
   // Approve all pending batches
   if (normalizedText === "ok all" || normalizedText === "approve all") {
-    await approveAllPending(supabase, captainPhone);
+    await approveAllPending(supabase, captainPhone, currentBoat);
     return;
   }
 
   // Approve the most recent pending batch
   if (normalizedText === "ok" || normalizedText === "okay" || normalizedText === "approve" || normalizedText === "yes" || normalizedText === "go" || normalizedText === "✅") {
-    await approveLatestPending(supabase, captainPhone);
+    await approveLatestPending(supabase, captainPhone, currentBoat);
     return;
   }
 
   // EDIT — prompt to type a custom caption
   if (normalizedText === "edit") {
-    await sendTextMessage(captainPhone, "Type your new caption and send it:");
+    await sendTextMessage(captainPhone, "Type your new caption and send it:", currentBoat);
     return;
   }
 
   // NEW / REDO — generate a fresh AI caption
   if (normalizedText === "new" || normalizedText === "redo") {
-    await requestNewCaption(supabase, captainPhone);
+    await requestNewCaption(supabase, captainPhone, currentBoat);
     return;
   }
 
   // Skip the latest pending batch
   if (normalizedText === "skip" || normalizedText === "no" || normalizedText === "pass") {
-    await skipLatestPending(supabase, captainPhone);
+    await skipLatestPending(supabase, captainPhone, currentBoat);
     return;
   }
 
   // HIDE — remove current trip from customer portal
   if (normalizedText === "hide" || normalizedText === "private") {
-    await hideFromPortal(supabase, captainPhone);
+    await hideFromPortal(supabase, captainPhone, currentBoat);
     return;
   }
 
   // SHOW — re-enable current trip on customer portal
   if (normalizedText === "show" || normalizedText === "unhide") {
-    await showOnPortal(supabase, captainPhone);
+    await showOnPortal(supabase, captainPhone, currentBoat);
     return;
   }
 
   // STATUS — check what's in the queue
   if (normalizedText === "status") {
-    await sendStatus(supabase, captainPhone);
+    await sendStatus(supabase, captainPhone, currentBoat);
     return;
   }
 
   // Any other text — treat as a custom caption (don't auto-post)
-  await applyCustomCaption(supabase, captainPhone, text.trim());
+  await applyCustomCaption(supabase, captainPhone, text.trim(), currentBoat);
 }
 
 // Process all "receiving" trips — generate captions and move to "pending"
 async function processReceivingTrips(
   supabase: ReturnType<typeof createServiceClient>,
-  captainPhone: string
+  captainPhone: string,
+  currentBoat: BoatName
 ): Promise<void> {
   const { data: receivingTrips } = await supabase
     .from("trips")
@@ -80,7 +85,7 @@ async function processReceivingTrips(
     .order("created_at", { ascending: false });
 
   if (!receivingTrips || receivingTrips.length === 0) {
-    await sendTextMessage(captainPhone, "No photos waiting to be processed.");
+    await sendTextMessage(captainPhone, "No photos waiting to be processed.", currentBoat);
     return;
   }
 
@@ -107,14 +112,16 @@ async function processReceivingTrips(
         `OK = Post it\n` +
         `EDIT = Write your own\n` +
         `NEW = Different AI caption\n` +
-        `SKIP = Don't post`
+        `SKIP = Don't post`,
+      trip.boat
     );
   }
 }
 
 async function sendStatus(
   supabase: ReturnType<typeof createServiceClient>,
-  captainPhone: string
+  captainPhone: string,
+  currentBoat: BoatName
 ): Promise<void> {
   const { data: receiving } = await supabase
     .from("trips")
@@ -152,7 +159,7 @@ async function sendStatus(
     msg += "\n\n🌐 = live on portal  🔒 = hidden";
   }
 
-  await sendTextMessage(captainPhone, msg);
+  await sendTextMessage(captainPhone, msg, currentBoat);
 }
 
 async function getLatestPendingTrip(
@@ -212,12 +219,13 @@ async function approveTrip(
 
 async function approveLatestPending(
   supabase: ReturnType<typeof createServiceClient>,
-  captainPhone: string
+  captainPhone: string,
+  currentBoat: BoatName
 ): Promise<void> {
   const trip = await getLatestPendingTrip(supabase);
 
   if (!trip) {
-    await sendTextMessage(captainPhone, "No pending batches to approve. Type PROCESS first if you have photos waiting.");
+    await sendTextMessage(captainPhone, "No pending batches to approve. Type PROCESS first if you have photos waiting.", currentBoat);
     return;
   }
 
@@ -231,7 +239,8 @@ async function approveLatestPending(
 
 async function approveAllPending(
   supabase: ReturnType<typeof createServiceClient>,
-  captainPhone: string
+  captainPhone: string,
+  currentBoat: BoatName
 ): Promise<void> {
   const { data: pendingTrips } = await supabase
     .from("trips")
@@ -240,7 +249,7 @@ async function approveAllPending(
     .order("created_at", { ascending: true });
 
   if (!pendingTrips || pendingTrips.length === 0) {
-    await sendTextMessage(captainPhone, "No pending batches to approve.");
+    await sendTextMessage(captainPhone, "No pending batches to approve.", currentBoat);
     return;
   }
 
@@ -251,18 +260,20 @@ async function approveAllPending(
   const boatNames = (pendingTrips as Trip[]).map((t) => t.boat).join(" & ");
   await sendTextMessage(
     captainPhone,
-    `Approved! ${boatNames} posting now.`
+    `Approved! ${boatNames} posting now.`,
+    currentBoat
   );
 }
 
 async function requestNewCaption(
   supabase: ReturnType<typeof createServiceClient>,
-  captainPhone: string
+  captainPhone: string,
+  currentBoat: BoatName
 ): Promise<void> {
   const trip = await getLatestPendingTrip(supabase);
 
   if (!trip) {
-    await sendTextMessage(captainPhone, "No pending batches to edit.");
+    await sendTextMessage(captainPhone, "No pending batches to edit.", currentBoat);
     return;
   }
 
@@ -285,18 +296,20 @@ async function requestNewCaption(
       `OK = Post it\n` +
       `EDIT = Write your own\n` +
       `NEW = Try again\n` +
-      `SKIP = Don't post`
+      `SKIP = Don't post`,
+    trip.boat
   );
 }
 
 async function skipLatestPending(
   supabase: ReturnType<typeof createServiceClient>,
-  captainPhone: string
+  captainPhone: string,
+  currentBoat: BoatName
 ): Promise<void> {
   const trip = await getLatestPendingTrip(supabase);
 
   if (!trip) {
-    await sendTextMessage(captainPhone, "No pending batches to skip.");
+    await sendTextMessage(captainPhone, "No pending batches to skip.", currentBoat);
     return;
   }
 
@@ -307,13 +320,15 @@ async function skipLatestPending(
 
   await sendTextMessage(
     captainPhone,
-    `Skipped ${trip.boat} ${trip.trip_time}. You can approve it later from the dashboard.`
+    `Skipped ${trip.boat} ${trip.trip_time}. You can approve it later from the dashboard.`,
+    trip.boat
   );
 }
 
 async function hideFromPortal(
   supabase: ReturnType<typeof createServiceClient>,
-  captainPhone: string
+  captainPhone: string,
+  currentBoat: BoatName
 ): Promise<void> {
   const { data: trip } = await supabase
     .from("trips")
@@ -324,7 +339,7 @@ async function hideFromPortal(
     .single();
 
   if (!trip) {
-    await sendTextMessage(captainPhone, "No active trip to hide.");
+    await sendTextMessage(captainPhone, "No active trip to hide.", currentBoat);
     return;
   }
 
@@ -335,13 +350,15 @@ async function hideFromPortal(
 
   await sendTextMessage(
     captainPhone,
-    `🔒 Hidden from portal: ${trip.boat} ${trip.trip_time}. Photos are still saved — type SHOW to make it visible again.`
+    `🔒 Hidden from portal: ${trip.boat} ${trip.trip_time}. Photos are still saved — type SHOW to make it visible again.`,
+    trip.boat as BoatName
   );
 }
 
 async function showOnPortal(
   supabase: ReturnType<typeof createServiceClient>,
-  captainPhone: string
+  captainPhone: string,
+  currentBoat: BoatName
 ): Promise<void> {
   const { data: trip } = await supabase
     .from("trips")
@@ -352,7 +369,7 @@ async function showOnPortal(
     .single();
 
   if (!trip) {
-    await sendTextMessage(captainPhone, "No active trip to show.");
+    await sendTextMessage(captainPhone, "No active trip to show.", currentBoat);
     return;
   }
 
@@ -368,21 +385,24 @@ async function showOnPortal(
 
   await sendTextMessage(
     captainPhone,
-    `🌐 Now visible on portal: ${trip.boat} ${trip.trip_time}. Type HIDE to remove.`
+    `🌐 Now visible on portal: ${trip.boat} ${trip.trip_time}. Type HIDE to remove.`,
+    trip.boat as BoatName
   );
 }
 
 async function applyCustomCaption(
   supabase: ReturnType<typeof createServiceClient>,
   captainPhone: string,
-  caption: string
+  caption: string,
+  currentBoat: BoatName
 ): Promise<void> {
   const trip = await getLatestPendingTrip(supabase);
 
   if (!trip) {
     await sendTextMessage(
       captainPhone,
-      "No pending batches. Type PROCESS first to prepare your photos, then you can set a caption."
+      "No pending batches. Type PROCESS first to prepare your photos, then you can set a caption.",
+      currentBoat
     );
     return;
   }
@@ -399,6 +419,7 @@ async function applyCustomCaption(
 
   await sendTextMessage(
     captainPhone,
-    `Caption set for ${trip.boat}:\n\n"${caption}"\n\nOK = Post it\nSKIP = Don't post`
+    `Caption set for ${trip.boat}:\n\n"${caption}"\n\nOK = Post it\nSKIP = Don't post`,
+    trip.boat
   );
 }

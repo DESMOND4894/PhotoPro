@@ -113,23 +113,24 @@ async function processWebhook(payload: WhatsAppWebhookPayload): Promise<void> {
       const messages = change.value.messages;
       if (!messages) continue;
 
+      // Which Cloud API phone received this message — used to route to the right boat.
+      const receivingPhoneId = change.value.metadata.phone_number_id;
+
       for (const message of messages) {
         const senderPhone = message.from;
-        // Group messages include a group ID in the context
-        const groupId = message.context?.from;
 
         try {
           switch (message.type) {
             case "image":
-              await handleIncomingPhoto(message, senderPhone, groupId);
+              await handleIncomingPhoto(message, senderPhone, receivingPhoneId);
               break;
 
             case "text":
-              await handleIncomingText(message, senderPhone, groupId);
+              await handleIncomingText(message, senderPhone, receivingPhoneId);
               break;
 
             case "reaction":
-              await handleIncomingReaction(message, senderPhone);
+              await handleIncomingReaction(message, senderPhone, receivingPhoneId);
               break;
 
             default:

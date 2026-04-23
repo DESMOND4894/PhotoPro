@@ -10,6 +10,8 @@ describe("validateEnv", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "test-anon-key");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "test-service-key");
     vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "123456");
+    vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID_QUEST_IV", "123456");
+    vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID_GRACE", "789012");
     vi.stubEnv("WHATSAPP_ACCESS_TOKEN", "test-token");
     vi.stubEnv("WHATSAPP_VERIFY_TOKEN", "test-verify");
     vi.stubEnv("WHATSAPP_CAPTAIN_PHONE", "15551234567");

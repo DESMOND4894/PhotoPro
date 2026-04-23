@@ -1,9 +1,16 @@
 import type { WhatsAppSendMessagePayload, WhatsAppMediaResponse } from "./types";
+import type { BoatName } from "@/lib/types";
 import { logWhatsAppMessage } from "./message-log";
 
 const WHATSAPP_API_URL = "https://graph.facebook.com/v21.0";
 
-function getPhoneNumberId(): string {
+function getPhoneNumberIdForBoat(boat?: BoatName): string {
+  if (boat === "Celtic Quest IV" && process.env.WHATSAPP_PHONE_NUMBER_ID_QUEST_IV) {
+    return process.env.WHATSAPP_PHONE_NUMBER_ID_QUEST_IV;
+  }
+  if (boat === "Celtic Grace" && process.env.WHATSAPP_PHONE_NUMBER_ID_GRACE) {
+    return process.env.WHATSAPP_PHONE_NUMBER_ID_GRACE;
+  }
   return process.env.WHATSAPP_PHONE_NUMBER_ID!;
 }
 
@@ -13,9 +20,10 @@ function getAccessToken(): string {
 
 async function whatsappFetch(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  boat?: BoatName
 ): Promise<Response> {
-  const url = `${WHATSAPP_API_URL}/${getPhoneNumberId()}/${endpoint}`;
+  const url = `${WHATSAPP_API_URL}/${getPhoneNumberIdForBoat(boat)}/${endpoint}`;
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -34,7 +42,7 @@ async function whatsappFetch(
   return response;
 }
 
-export async function sendTextMessage(to: string, body: string): Promise<void> {
+export async function sendTextMessage(to: string, body: string, boat?: BoatName): Promise<void> {
   const payload: WhatsAppSendMessagePayload = {
     messaging_product: "whatsapp",
     to,
@@ -45,7 +53,7 @@ export async function sendTextMessage(to: string, body: string): Promise<void> {
   await whatsappFetch("messages", {
     method: "POST",
     body: JSON.stringify(payload),
-  });
+  }, boat);
 
   const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
   await logWhatsAppMessage({
@@ -60,7 +68,8 @@ export async function sendTextMessage(to: string, body: string): Promise<void> {
 export async function sendInteractiveButtons(
   to: string,
   body: string,
-  buttons: Array<{ id: string; title: string }>
+  buttons: Array<{ id: string; title: string }>,
+  boat?: BoatName
 ): Promise<void> {
   const payload: WhatsAppSendMessagePayload = {
     messaging_product: "whatsapp",
@@ -81,7 +90,7 @@ export async function sendInteractiveButtons(
   await whatsappFetch("messages", {
     method: "POST",
     body: JSON.stringify(payload),
-  });
+  }, boat);
 
   const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
   await logWhatsAppMessage({
@@ -123,7 +132,7 @@ export async function downloadMedia(mediaId: string): Promise<Buffer> {
 
 export async function sendCaptainNotification(
   tripId: string,
-  boat: string,
+  boat: BoatName,
   tripTime: string,
   photoCount: number,
   caption: string
@@ -141,24 +150,24 @@ export async function sendCaptainNotification(
     `Or type your own caption to use it\n\n` +
     `Trip ID: ${tripId.slice(0, 8)}`;
 
-  await sendTextMessage(captainPhone, message);
+  await sendTextMessage(captainPhone, message, boat);
 }
 
-export async function sendGroupConfirmation(
-  groupJid: string,
-  boat: string,
+export async function sendChatConfirmation(
+  to: string,
+  boat: BoatName,
   photoCount: number
 ): Promise<void> {
   const message = `📸 ${photoCount} photos received for ${boat} ${
     new Date().getHours() < 13 ? "morning" : "afternoon"
   } trip. Generating caption…`;
 
-  await sendTextMessage(groupJid, message);
+  await sendTextMessage(to, message, boat);
 }
 
 export async function sendPostingConfirmation(
   to: string,
-  boat: string,
+  boat: BoatName,
   platforms: string[]
 ): Promise<void> {
   const platformList = platforms
@@ -166,5 +175,5 @@ export async function sendPostingConfirmation(
     .join(", ");
 
   const message = `✅ ${boat} batch approved! Posting to ${platformList} now.`;
-  await sendTextMessage(to, message);
+  await sendTextMessage(to, message, boat);
 }

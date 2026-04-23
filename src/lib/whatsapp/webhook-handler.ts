@@ -5,16 +5,13 @@ import type { WhatsAppMessage, BoatName, TripTime } from "@/lib/types";
 import { getBoatSlug } from "@/lib/types";
 import { generateTripPublicSlug } from "@/lib/public-portal";
 
-// Map WhatsApp group JIDs to boat names (configured via env)
-function getBoatForSender(from: string): BoatName | null {
-  const questGroup = process.env.WHATSAPP_GROUP_CELTIC_QUEST_IV;
-  const graceGroup = process.env.WHATSAPP_GROUP_CELTIC_GRACE;
-
-  if (questGroup && from === questGroup) return "Celtic Quest IV";
-  if (graceGroup && from === graceGroup) return "Celtic Grace";
-
-  // For 1:1 messages, default to Celtic Quest IV for testing/convenience
-  // This allows crew to send photos directly to the bot number
+// Map the bot's Cloud API phone_number_id (which received the message) to a boat.
+// Cloud API does not allow numbers to join consumer WhatsApp groups, so each boat
+// has its own bot phone and the captain holds a 1:1 chat per boat. The receiving
+// phone is the only reliable signal for which boat a message belongs to.
+function getBoatForReceiver(receivingPhoneId: string): BoatName {
+  if (receivingPhoneId === process.env.WHATSAPP_PHONE_NUMBER_ID_QUEST_IV) return "Celtic Quest IV";
+  if (receivingPhoneId === process.env.WHATSAPP_PHONE_NUMBER_ID_GRACE) return "Celtic Grace";
   return "Celtic Quest IV";
 }
 
@@ -30,27 +27,22 @@ function getTodayDate(): string {
 export async function handleIncomingPhoto(
   message: WhatsAppMessage,
   senderPhone: string,
-  groupId?: string
+  receivingPhoneId: string
 ): Promise<void> {
   const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
   const supabase = createServiceClient();
-  const boat = getBoatForSender(groupId || senderPhone);
+  const boat = getBoatForReceiver(receivingPhoneId);
 
   // Log inbound photo
   await logWhatsAppMessage({
     direction: "inbound",
     senderPhone,
     messageType: "image",
-    content: `Photo from ${boat || "unknown"}`,
+    content: `Photo from ${boat}`,
     whatsappMessageId: message.id,
     mediaId: message.image?.id,
     isCaptain: senderPhone === captainPhone,
   });
-
-  if (!boat) {
-    console.log(`Unknown sender/group: ${groupId || senderPhone}, ignoring photo`);
-    return;
-  }
 
   const mediaId = message.image!.id;
   const date = getTodayDate();
@@ -201,7 +193,8 @@ export async function handleIncomingPhoto(
     const portalLink = appUrl ? `\n🔗 ${appUrl}/photos/trips/${slug}` : "";
     await sendTextMessage(
       captainPhone,
-      `📸 Photos coming in for ${boat} — live on customer portal now.${portalLink}\nType PROCESS when you're done sending.\nType HIDE to remove from portal.`
+      `📸 Photos coming in for ${boat} — live on customer portal now.${portalLink}\nType PROCESS when you're done sending.\nType HIDE to remove from portal.`,
+      boat
     );
   }
 }
@@ -209,14 +202,13 @@ export async function handleIncomingPhoto(
 export async function handleIncomingText(
   message: WhatsAppMessage,
   senderPhone: string,
-  groupId?: string
+  receivingPhoneId: string
 ): Promise<void> {
-  const supabase = createServiceClient();
   const text = message.text?.body?.trim();
   if (!text) return;
 
-  // Check if this is from the captain FIRST (approval flow)
   const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
+  const boat = getBoatForReceiver(receivingPhoneId);
 
   // Log inbound text
   await logWhatsAppMessage({
@@ -225,41 +217,23 @@ export async function handleIncomingText(
     messageType: "text",
     content: text,
     whatsappMessageId: message.id,
-    isCaptain: senderPhone === captainPhone && !groupId,
+    isCaptain: senderPhone === captainPhone,
   });
 
-  if (senderPhone === captainPhone && !groupId) {
+  if (senderPhone === captainPhone) {
     const { handleCaptainResponse } = await import("./captain-handler");
-    await handleCaptainResponse(text, senderPhone);
-    return;
-  }
-
-  // Check if this is from a group (crew note)
-  const boat = getBoatForSender(groupId || senderPhone);
-  if (boat && groupId) {
-    // Crew note: attach to current trip
-    const date = getTodayDate();
-    const tripTime = getCurrentTripTime();
-
-    await supabase
-      .from("trips")
-      .update({
-        crew_notes: text,
-      })
-      .eq("boat", boat)
-      .eq("date", date)
-      .eq("trip_time", tripTime);
-
-    console.log(`Crew note saved for ${boat}: "${text}"`);
+    await handleCaptainResponse(text, senderPhone, boat);
     return;
   }
 }
 
 export async function handleIncomingReaction(
   message: WhatsAppMessage,
-  senderPhone: string
+  senderPhone: string,
+  receivingPhoneId: string
 ): Promise<void> {
   const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
+  const boat = getBoatForReceiver(receivingPhoneId);
 
   // Log inbound reaction
   await logWhatsAppMessage({
@@ -277,6 +251,6 @@ export async function handleIncomingReaction(
   if (emoji === "✅") {
     // Approve reaction on a trip notification
     const { handleCaptainResponse } = await import("./captain-handler");
-    await handleCaptainResponse("✅", senderPhone);
+    await handleCaptainResponse("✅", senderPhone, boat);
   }
 }

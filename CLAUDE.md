@@ -1,7 +1,24 @@
 # Photo Pro — Stability Document
 
-**Last updated: Feb 23, 2026 (Session 4)**
+**Last updated: Apr 23, 2026**
 **Purpose: Prevent regressions. Read this BEFORE making any code changes.**
+
+---
+
+## ARCHITECTURAL CONSTRAINT — READ FIRST
+
+**Meta WhatsApp Cloud API phone numbers CANNOT be added to consumer WhatsApp groups.** This is a permanent, deliberate Meta restriction — when you try to add a Cloud API number to a group, WhatsApp shows "Invite via SMS" because the number doesn't exist as a regular WhatsApp user. No PIN, no propagation wait, no re-registration changes this.
+
+The bot therefore operates **strictly via 1:1 chats**: crew tell the captain by normal WhatsApp, captain forwards photos in a 1:1 chat with the boat's bot phone, bot routes by which Cloud API phone received the message (`metadata.phone_number_id` in the webhook payload). One bot phone per boat:
+
+| Boat | Bot phone | phone_number_id env var |
+|---|---|---|
+| Celtic Quest IV | +1 555-142-0958 (Meta test number) | `WHATSAPP_PHONE_NUMBER_ID_QUEST_IV` = 1066724903193826 |
+| Celtic Grace | +1 631-502-5322 (production) | `WHATSAPP_PHONE_NUMBER_ID_GRACE` = 1151039594750412 |
+
+`WHATSAPP_PHONE_NUMBER_ID` is kept as a boat-agnostic default for cron jobs and is set to the Grace production number.
+
+**Do NOT propose group-based architectures. Do NOT add `WHATSAPP_GROUP_*` env vars. Do NOT put `getBoatForSender(groupId)` back.** See `tasks/lessons.md` for the full discovery story so this is not repeated.
 
 ---
 

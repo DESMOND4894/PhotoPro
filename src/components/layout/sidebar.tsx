@@ -18,6 +18,12 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [connections, setConnections] = useState<Connection[]>([]);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Auto-close drawer when route changes
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     async function fetchConnections() {
@@ -49,12 +55,52 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-64 bg-[var(--sidebar-bg)] text-white flex flex-col z-40">
-      {/* Logo */}
-      <div className="px-8 py-6 border-b border-slate-700">
-        <h1 className="text-xl font-bold tracking-tight">Photo Pro</h1>
-        <p className="text-slate-400 text-sm mt-0.5">Celtic Quest Fishing Fleet</p>
+    <>
+      {/* Mobile top bar with hamburger (md:hidden) */}
+      <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-[var(--sidebar-bg)] text-white flex items-center justify-between px-4 z-30">
+        <button
+          aria-label="Open menu"
+          onClick={() => setMobileOpen(true)}
+          className="p-2 -ml-2 rounded-md hover:bg-slate-800"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <div className="text-base font-semibold">Photo Pro</div>
+        <div className="w-10" />
       </div>
+
+      {/* Backdrop on mobile when drawer open */}
+      {mobileOpen && (
+        <button
+          aria-label="Close menu"
+          onClick={() => setMobileOpen(false)}
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+        />
+      )}
+
+      <aside
+        className={`fixed left-0 top-0 bottom-0 w-64 bg-[var(--sidebar-bg)] text-white flex flex-col z-50 transform transition-transform duration-200 ease-out ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
+      >
+        {/* Close button (mobile only) */}
+        <button
+          aria-label="Close menu"
+          onClick={() => setMobileOpen(false)}
+          className="md:hidden absolute top-4 right-4 p-2 rounded-md text-slate-400 hover:bg-slate-800 hover:text-white"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* Logo */}
+        <div className="px-8 py-6 border-b border-slate-700">
+          <h1 className="text-xl font-bold tracking-tight">Photo Pro</h1>
+          <p className="text-slate-400 text-sm mt-0.5">Celtic Quest Fishing Fleet</p>
+        </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-5 py-6 space-y-2">
@@ -174,5 +220,6 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

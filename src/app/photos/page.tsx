@@ -31,10 +31,6 @@ export default async function PhotosPage() {
           <h1 className="font-heading mt-2 text-[clamp(2.25rem,5vw,3.75rem)] font-extrabold leading-[1.08] text-white">
             Celtic Fleet<br />Photo Gallery
           </h1>
-          <p className="mt-3 max-w-lg font-sans text-[0.95rem] leading-7 text-white/55">
-            Every photo the crew shot on your charter — organized by trip and ready to download.
-            Find your trip below.
-          </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {["Free to download", "No account needed", "Port Jefferson, NY"].map((label) => (
               <span
@@ -50,6 +46,14 @@ export default async function PhotosPage() {
           </div>
         </div>
       </section>
+
+      {/* ─── Intro line above search ─── */}
+      <div className="mx-auto max-w-6xl px-5 pt-8 lg:px-8">
+        <p className="font-sans text-[1rem] leading-7 text-slate-700">
+          Every photo the crew shot on your charter — organized by trip and ready to download.
+          Find your trip below.
+        </p>
+      </div>
 
       {/* ─── Search + Filter + Trip Grid (client component) ─── */}
       <PhotosSearch trips={trips} />

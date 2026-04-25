@@ -1,5 +1,5 @@
 export const BRAND_SIGNOFF =
-  "Sailing daily, private charters arranged. Call us anytime at 631-928-3926.\nwww.celticquestfishing.com";
+  "🎣 Sailing open boat daily — private charters arranged.\n🌐 Check our schedule at www.celticquestfishing.com\n\n📞 Or call us anytime at 631-928-3926\n✉️ office@cqfleet.com";
 
 export function withSignoff(caption: string): string {
   const trimmed = (caption || "").trimEnd();

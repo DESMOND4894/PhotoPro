@@ -4,7 +4,7 @@ interface LogMessageParams {
   direction: "inbound" | "outbound";
   senderPhone?: string;
   recipientPhone?: string;
-  messageType: "text" | "image" | "reaction" | "interactive";
+  messageType: "text" | "image" | "video" | "reaction" | "interactive";
   content?: string;
   whatsappMessageId?: string;
   mediaId?: string;

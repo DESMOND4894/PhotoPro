@@ -57,8 +57,10 @@ export function TripGallery({ trip }: TripGalleryProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedPhotoId = searchParams.get("photo");
-  const selectedIndex = trip.photos.findIndex((photo) => photo.id === selectedPhotoId);
-  const selectedPhoto = selectedIndex >= 0 ? trip.photos[selectedIndex] : null;
+  // Lightbox is image-only — videos play inline in the grid.
+  const imagePhotos = trip.photos.filter((photo) => photo.mediaType !== "video");
+  const selectedIndex = imagePhotos.findIndex((photo) => photo.id === selectedPhotoId);
+  const selectedPhoto = selectedIndex >= 0 ? imagePhotos[selectedIndex] : null;
   const [message, setMessage] = useState<string | null>(null);
 
   function updatePhotoParam(photoId: string | null) {
@@ -99,15 +101,15 @@ export function TripGallery({ trip }: TripGalleryProps) {
     if (!selectedPhoto) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") updatePhotoParam(null);
-      if (event.key === "ArrowRight" && selectedIndex < trip.photos.length - 1)
-        updatePhotoParam(trip.photos[selectedIndex + 1].id);
+      if (event.key === "ArrowRight" && selectedIndex < imagePhotos.length - 1)
+        updatePhotoParam(imagePhotos[selectedIndex + 1].id);
       if (event.key === "ArrowLeft" && selectedIndex > 0)
-        updatePhotoParam(trip.photos[selectedIndex - 1].id);
+        updatePhotoParam(imagePhotos[selectedIndex - 1].id);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIndex, selectedPhoto, trip.photos, searchParams]);
+  }, [selectedIndex, selectedPhoto, imagePhotos, searchParams]);
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
   const tripShareUrl = baseUrl ? `${baseUrl}${pathname}` : pathname;
@@ -230,33 +232,55 @@ export function TripGallery({ trip }: TripGalleryProps) {
             </div>
           ) : (
             <div className="columns-2 gap-2.5 sm:columns-3 lg:columns-4">
-              {trip.photos.map((photo, index) => (
-                <div
-                  key={photo.id}
-                  className="group relative mb-2.5 cursor-pointer overflow-hidden rounded-[0.875rem] bg-[#d6d3cd] break-inside-avoid"
-                  onClick={() => updatePhotoParam(photo.id)}
-                >
-                  <Image
-                    src={photo.thumbnailUrl}
-                    alt={`${trip.publicTitle} photo ${index + 1}`}
-                    width={400}
-                    height={400 + (index % 3) * 80}
-                    className="block w-full transition duration-400 group-hover:scale-[1.03]"
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  />
-                  {/* Hover overlay with download */}
-                  <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/50 via-transparent to-transparent p-3 opacity-0 transition-opacity duration-250 group-hover:opacity-100">
-                    <a
-                      href={`/api/public/photos/${photo.id}/download`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 font-sans text-[0.75rem] font-bold text-slate-900 transition-colors hover:bg-amber-400"
-                    >
-                      <IconDownload />
-                      Download
-                    </a>
+              {trip.photos.map((photo, index) =>
+                photo.mediaType === "video" ? (
+                  <div
+                    key={photo.id}
+                    className="group relative mb-2.5 overflow-hidden rounded-[0.875rem] bg-black break-inside-avoid"
+                  >
+                    <video
+                      src={photo.url}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="block w-full"
+                    />
+                    {/* Tiny "video" badge so visitors know it's not a photo */}
+                    <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/65 px-2.5 py-1 font-sans text-[0.65rem] font-bold uppercase tracking-wider text-white">
+                      <svg className="h-3 w-3" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M3 4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4zm9 1.5 3-1.5v8l-3-1.5v-5z" />
+                      </svg>
+                      Video
+                    </span>
                   </div>
-                </div>
-              ))}
+                ) : (
+                  <div
+                    key={photo.id}
+                    className="group relative mb-2.5 cursor-pointer overflow-hidden rounded-[0.875rem] bg-[#d6d3cd] break-inside-avoid"
+                    onClick={() => updatePhotoParam(photo.id)}
+                  >
+                    <Image
+                      src={photo.thumbnailUrl}
+                      alt={`${trip.publicTitle} photo ${index + 1}`}
+                      width={400}
+                      height={400 + (index % 3) * 80}
+                      className="block w-full transition duration-400 group-hover:scale-[1.03]"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    />
+                    {/* Hover overlay with download */}
+                    <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/50 via-transparent to-transparent p-3 opacity-0 transition-opacity duration-250 group-hover:opacity-100">
+                      <a
+                        href={`/api/public/photos/${photo.id}/download`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 font-sans text-[0.75rem] font-bold text-slate-900 transition-colors hover:bg-amber-400"
+                      >
+                        <IconDownload />
+                        Download
+                      </a>
+                    </div>
+                  </div>
+                )
+              )}
             </div>
           )}
         </section>
@@ -318,7 +342,7 @@ export function TripGallery({ trip }: TripGalleryProps) {
               <div>
                 <p className="font-sans text-sm font-semibold text-white/90">{trip.publicTitle}</p>
                 <p className="font-sans text-xs text-white/40">
-                  {selectedIndex + 1} of {trip.photos.length}
+                  {selectedIndex + 1} of {imagePhotos.length}
                 </p>
               </div>
               <button
@@ -351,7 +375,7 @@ export function TripGallery({ trip }: TripGalleryProps) {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => selectedIndex > 0 && updatePhotoParam(trip.photos[selectedIndex - 1].id)}
+                  onClick={() => selectedIndex > 0 && updatePhotoParam(imagePhotos[selectedIndex - 1].id)}
                   disabled={selectedIndex === 0}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:opacity-30"
                   aria-label="Previous photo"
@@ -362,8 +386,8 @@ export function TripGallery({ trip }: TripGalleryProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => selectedIndex < trip.photos.length - 1 && updatePhotoParam(trip.photos[selectedIndex + 1].id)}
-                  disabled={selectedIndex === trip.photos.length - 1}
+                  onClick={() => selectedIndex < imagePhotos.length - 1 && updatePhotoParam(imagePhotos[selectedIndex + 1].id)}
+                  disabled={selectedIndex === imagePhotos.length - 1}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:opacity-30"
                   aria-label="Next photo"
                 >

@@ -3,6 +3,7 @@ import crypto from "crypto";
 import type { WhatsAppWebhookPayload } from "@/lib/types";
 import {
   handleIncomingPhoto,
+  handleIncomingVideo,
   handleIncomingText,
   handleIncomingReaction,
 } from "@/lib/whatsapp/webhook-handler";
@@ -123,6 +124,10 @@ async function processWebhook(payload: WhatsAppWebhookPayload): Promise<void> {
           switch (message.type) {
             case "image":
               await handleIncomingPhoto(message, senderPhone, receivingPhoneId);
+              break;
+
+            case "video":
+              await handleIncomingVideo(message, senderPhone, receivingPhoneId);
               break;
 
             case "text":

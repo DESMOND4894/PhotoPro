@@ -18,12 +18,15 @@ function toStringArray(value: unknown): string[] {
 
 function mapPhoto(photo: Photo): PublicTripPhoto {
   const url = getPublicPhotoUrl(photo);
+  const mediaType = (photo.media_type ?? "image") as "image" | "video";
 
   return {
     id: photo.id,
     url,
     thumbnailUrl: url,
     uploadedAt: photo.uploaded_at,
+    mediaType,
+    durationSeconds: photo.duration_seconds ?? null,
   };
 }
 
@@ -46,10 +49,14 @@ async function getPhotosByIds(photoIds: string[]): Promise<Map<string, Photo>> {
 }
 
 function mapTripCard(trip: Trip, photoMap: Map<string, Photo>): PublicTripCard {
-  const coverPhoto = trip.public_cover_photo_id ? photoMap.get(trip.public_cover_photo_id) : null;
+  const rawCover = trip.public_cover_photo_id ? photoMap.get(trip.public_cover_photo_id) : null;
+  // Cover should be an image — videos can't render in <Image>. If cover is a
+  // video, ignore it and fall through to the photo_urls fallback below.
+  const coverPhoto = rawCover && (rawCover.media_type ?? "image") === "image" ? rawCover : null;
   const featuredPhotos = toStringArray(trip.featured_photo_ids)
     .map((id) => photoMap.get(id))
     .filter((photo): photo is Photo => Boolean(photo))
+    .filter((photo) => (photo.media_type ?? "image") === "image")
     .map((photo) => getPublicPhotoUrl(photo));
 
   return {

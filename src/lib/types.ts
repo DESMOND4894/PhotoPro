@@ -45,6 +45,8 @@ export interface Trip {
   public_species_tags: string[];
 }
 
+export type MediaType = "image" | "video";
+
 export interface Photo {
   id: string;
   trip_id: string;
@@ -55,6 +57,8 @@ export interface Photo {
   is_duplicate: boolean;
   watermarked_url: string | null;
   uploaded_at: string;
+  media_type: MediaType;
+  duration_seconds: number | null;
 }
 
 export interface CaptionHistory {
@@ -84,6 +88,12 @@ export interface WhatsAppMessage {
   type: "text" | "image" | "video" | "document" | "reaction";
   text?: { body: string };
   image?: {
+    id: string;
+    mime_type: string;
+    sha256: string;
+    caption?: string;
+  };
+  video?: {
     id: string;
     mime_type: string;
     sha256: string;

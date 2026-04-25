@@ -199,6 +199,165 @@ export async function handleIncomingPhoto(
   }
 }
 
+export async function handleIncomingVideo(
+  message: WhatsAppMessage,
+  senderPhone: string,
+  receivingPhoneId: string
+): Promise<void> {
+  const captainPhone = process.env.WHATSAPP_CAPTAIN_PHONE?.trim();
+  const supabase = createServiceClient();
+  const boat = getBoatForReceiver(receivingPhoneId);
+
+  // Log inbound video
+  await logWhatsAppMessage({
+    direction: "inbound",
+    senderPhone,
+    messageType: "video",
+    content: `Video from ${boat}`,
+    whatsappMessageId: message.id,
+    mediaId: message.video?.id,
+    isCaptain: senderPhone === captainPhone,
+  });
+
+  const mediaId = message.video!.id;
+  const mimeType = message.video!.mime_type || "video/mp4";
+  const date = getTodayDate();
+  const tripTime = getCurrentTripTime();
+
+  // Get or create the trip — same logic as photos
+  const { data: existingTrip } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("boat", boat)
+    .eq("date", date)
+    .eq("trip_time", tripTime)
+    .single();
+
+  let tripId: string;
+
+  if (existingTrip) {
+    tripId = existingTrip.id;
+
+    if (["posted", "skipped", "failed"].includes(existingTrip.status)) {
+      await supabase.from("posting_log").delete().eq("trip_id", tripId);
+      await supabase.from("photos").delete().eq("trip_id", tripId);
+
+      await supabase
+        .from("trips")
+        .update({
+          status: "receiving",
+          photo_urls: [],
+          photo_count: 0,
+          caption: null,
+          caption_facebook: null,
+          caption_instagram: null,
+          caption_tiktok: null,
+          batch_complete: false,
+          approved_at: null,
+          posted_to: [],
+          public_enabled: true,
+          public_slug: existingTrip.public_slug || generateTripPublicSlug(boat, date, tripTime),
+          public_published_at: existingTrip.public_published_at || new Date().toISOString(),
+        })
+        .eq("id", tripId);
+    }
+  } else {
+    const { data: newTrip, error } = await supabase
+      .from("trips")
+      .insert({
+        boat,
+        date,
+        trip_time: tripTime,
+        status: "receiving",
+        public_enabled: true,
+        public_slug: generateTripPublicSlug(boat, date, tripTime),
+        public_published_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error && error.code === "23505") {
+      const { data: refetched } = await supabase
+        .from("trips")
+        .select("*")
+        .eq("boat", boat)
+        .eq("date", date)
+        .eq("trip_time", tripTime)
+        .single();
+
+      if (!refetched) throw new Error("Failed to fetch trip after unique constraint conflict");
+      tripId = refetched.id;
+    } else if (error) {
+      throw new Error(`Failed to create trip: ${error.message}`);
+    } else {
+      tripId = newTrip.id;
+    }
+  }
+
+  // Download the video from WhatsApp
+  const videoBuffer = await downloadMedia(mediaId);
+
+  // Pick an extension that matches the MIME type so the file plays in browsers
+  const extension = mimeType.includes("quicktime") ? "mov" : "mp4";
+  const boatSlug = getBoatSlug(boat);
+  const videoTimestamp = Date.now();
+  const storagePath = `videos/${date}/${boatSlug}/${tripTime}/video-${videoTimestamp}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("photos")
+    .upload(storagePath, videoBuffer, {
+      contentType: mimeType,
+      upsert: false,
+    });
+
+  if (uploadError) throw new Error(`Failed to upload video: ${uploadError.message}`);
+
+  const { data: urlData } = supabase.storage.from("photos").getPublicUrl(storagePath);
+  const publicUrl = urlData.publicUrl;
+
+  // Save record in the photos table with media_type='video'
+  await supabase.from("photos").insert({
+    trip_id: tripId,
+    storage_path: storagePath,
+    public_url: publicUrl,
+    whatsapp_media_id: mediaId,
+    media_type: "video",
+  });
+
+  // Recompute photo_count + photo_urls (we keep photo_urls as a flat list of all media)
+  const { data: allMedia } = await supabase
+    .from("photos")
+    .select("public_url")
+    .eq("trip_id", tripId)
+    .order("uploaded_at", { ascending: true });
+
+  const updatedUrls = allMedia?.map((p) => p.public_url) || [];
+
+  await supabase
+    .from("trips")
+    .update({
+      photo_count: updatedUrls.length,
+      photo_urls: updatedUrls,
+      last_photo_at: new Date().toISOString(),
+      batch_complete: false,
+    })
+    .eq("id", tripId);
+
+  console.log(`Video saved for ${boat} ${tripTime} trip (${tripId})`);
+
+  // Notify captain on the first piece of media in a trip — same rule as photos
+  if (senderPhone === captainPhone && updatedUrls.length === 1) {
+    const slug = generateTripPublicSlug(boat, date, tripTime);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+    const portalLink = appUrl ? `\n🔗 ${appUrl}/photos/trips/${slug}` : "";
+    await sendTextMessage(
+      captainPhone,
+      `🎥 Video received for ${boat} — live on customer portal now.${portalLink}\nType PROCESS when you're done sending.\nType HIDE to remove from portal.`,
+      boat
+    );
+  }
+}
+
 export async function handleIncomingText(
   message: WhatsAppMessage,
   senderPhone: string,

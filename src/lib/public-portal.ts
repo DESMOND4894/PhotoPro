@@ -18,6 +18,8 @@ export interface PublicTripPhoto {
   url: string;
   thumbnailUrl: string;
   uploadedAt: string;
+  mediaType: "image" | "video";
+  durationSeconds: number | null;
 }
 
 export interface PublicTripDetail extends PublicTripCard {

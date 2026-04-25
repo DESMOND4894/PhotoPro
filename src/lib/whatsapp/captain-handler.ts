@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { sendTextMessage, sendPostingConfirmation } from "./client";
 import type { Trip, BoatName } from "@/lib/types";
 import { generateTripPublicSlug } from "@/lib/public-portal";
+import { withSignoff } from "@/lib/brand";
 
 // `currentBoat` is the boat whose chat the captain typed in (so generic replies
 // come back through the same WhatsApp conversation). Trip-specific replies use
@@ -108,7 +109,7 @@ async function processReceivingTrips(
       captainPhone,
       `📸 ${trip.boat} — ${trip.trip_time} trip\n` +
         `${trip.photo_count} photo${trip.photo_count > 1 ? "s" : ""}\n\n` +
-        `Caption:\n"${caption}"\n\n` +
+        `Caption:\n"${withSignoff(caption)}"\n\n` +
         `OK = Post it\n` +
         `EDIT = Write your own\n` +
         `NEW = Different AI caption\n` +
@@ -292,7 +293,7 @@ async function requestNewCaption(
 
   await sendTextMessage(
     captainPhone,
-    `📝 New caption for ${trip.boat}:\n\n"${newCaption}"\n\n` +
+    `📝 New caption for ${trip.boat}:\n\n"${withSignoff(newCaption)}"\n\n` +
       `OK = Post it\n` +
       `EDIT = Write your own\n` +
       `NEW = Try again\n` +
@@ -419,7 +420,7 @@ async function applyCustomCaption(
 
   await sendTextMessage(
     captainPhone,
-    `Caption set for ${trip.boat}:\n\n"${caption}"\n\nOK = Post it\nSKIP = Don't post`,
+    `Caption set for ${trip.boat}:\n\n"${withSignoff(caption)}"\n\nOK = Post it\nSKIP = Don't post`,
     trip.boat
   );
 }

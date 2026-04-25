@@ -1,6 +1,7 @@
 import type { Trip } from "@/lib/types";
 import { sanitizeApiError } from "@/lib/utils/sanitize";
 import { getFacebookPageToken } from "@/lib/social/tokens";
+import { withSignoff } from "@/lib/brand";
 
 const GRAPH_API_URL = "https://graph.facebook.com/v21.0";
 
@@ -41,7 +42,7 @@ export async function postFacebookAlbum(trip: Trip): Promise<string> {
   }
 
   // Step 2: Create feed post with all photos attached
-  const caption = trip.caption_facebook || trip.caption || "";
+  const caption = withSignoff(trip.caption_facebook || trip.caption || "");
   const attachedMedia = photoIds.map((id) => ({
     media_fbid: id,
   }));

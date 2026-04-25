@@ -2,6 +2,7 @@ import type { Trip } from "@/lib/types";
 import { generatePlatformVariant } from "@/lib/ai/caption-generator";
 import { sanitizeApiError } from "@/lib/utils/sanitize";
 import { getInstagramCredentials } from "@/lib/social/tokens";
+import { withSignoff } from "@/lib/brand";
 
 const GRAPH_API_URL = "https://graph.facebook.com/v21.0";
 
@@ -21,10 +22,11 @@ export async function postInstagramCarousel(trip: Trip): Promise<string[]> {
   }
 
   // Use Instagram-specific caption, fall back to main caption, then AI generation
-  const caption =
+  const baseCaption =
     trip.caption_instagram ||
     trip.caption ||
     (await generatePlatformVariant(trip, "instagram"));
+  const caption = withSignoff(baseCaption);
 
   const { token, igAccountId: igId } = await getInstagramCredentials();
 

@@ -8,16 +8,16 @@ export function buildCaptionPrompt(
 ): string {
   const recentCaptionBlock =
     recentCaptions.length > 0
-      ? `\nRecent captions (AVOID repeating these styles and phrases):\n${recentCaptions.map((c, i) => `${i + 1}. "${c}"`).join("\n")}\n`
+      ? `\nRecent captions (avoid repeating these openings or phrasing):\n${recentCaptions.map((c, i) => `${i + 1}. "${c}"`).join("\n")}\n`
       : "";
 
   const platformInstructions = {
-    facebook: `Write a Facebook post caption. Include a booking link to celticquestfishing.com at the end. Keep it 2-4 sentences. Energetic, authentic fishing charter voice.`,
-    instagram: `Write an Instagram caption. Include a booking link to celticquestfishing.com. After the caption, add a blank line and then 15-20 relevant hashtags (fishing, Long Island, Port Jefferson, charter fishing, etc.). Keep caption 2-4 sentences.`,
-    tiktok: `Write a short, punchy TikTok caption. Max 2 sentences. Use 1-2 relevant emojis. No link needed. Hook the viewer.`,
+    facebook: `Write 1-2 sentences describing what happened on this trip. Plain and factual.`,
+    instagram: `Write 1-2 sentences describing what happened on this trip. Plain and factual. After the caption, add a blank line, then 12-18 relevant lowercase hashtags (e.g. fishing, longisland, portjefferson, charterfishing). Do not include URLs or @ mentions.`,
+    tiktok: `Write 1 short factual sentence about this trip. No hashtags.`,
   };
 
-  return `You are the social media voice for Celtic Quest Fishing, a charter fishing operation out of Port Jefferson, Long Island, NY. You write exciting, authentic fishing captions that get customers pumped to book trips.
+  return `You are writing a short factual social media caption for Celtic Quest Fishing, a charter fishing operation out of Port Jefferson, Long Island, NY.
 
 BOAT: ${trip.boat}
 DATE: ${trip.date}
@@ -28,14 +28,14 @@ WEATHER: ${weather}
 
 ${platformInstructions[variant]}
 
-Style guidelines:
-- Sound like a real fishing captain, not a marketing agency
-- Use natural excitement — ALL CAPS for emphasis sparingly (1-2 words max)
-- Mention the boat name (${trip.boat})
-- Reference Port Jefferson / Port Jeff / Long Island Sound when it fits naturally
-- If crew notes mention specific fish species or catches, highlight them
-- Vary your openings and energy — don't always start the same way
-- Use 1-3 fishing/outdoor emojis naturally (🎣 🔥 💪 🐟 ☀️ etc.)
+Style rules — these are strict:
+- Plain, factual voice. Sound like a captain sending a quick update, not marketing copy.
+- No emojis. No exclamation points. No ALL CAPS.
+- No hype words. Do not use: epic, stoked, pumped, crushing, insane, amazing, incredible, awesome, beautiful, killed it, on fire, loaded up, slammed, smashed, fired up, hooked up, dialed in, sick, wild, unreal.
+- Mention the boat name once (${trip.boat}).
+- Reference Port Jefferson or Long Island Sound only when it fits naturally — do not force it.
+- If crew notes mention specific species or counts, state them factually.
+- Do NOT include phone numbers, URLs, website addresses, or any "call us / book now" calls to action. Those are appended automatically.
 ${recentCaptionBlock}
 Write ONLY the caption text. No quotes, no labels, no explanations.`;
 }

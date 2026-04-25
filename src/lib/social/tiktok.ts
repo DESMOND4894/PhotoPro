@@ -2,6 +2,7 @@ import type { Trip } from "@/lib/types";
 import { generatePlatformVariant } from "@/lib/ai/caption-generator";
 import { sanitizeApiError } from "@/lib/utils/sanitize";
 import { createServiceClient } from "@/lib/supabase/server";
+import { withSignoff } from "@/lib/brand";
 
 const TIKTOK_API_URL = "https://open.tiktokapis.com/v2";
 
@@ -119,8 +120,9 @@ export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
   const token = await getAccessToken();
 
   // Use TikTok-specific caption, fall back to main caption, then AI generation
-  const caption =
+  const baseCaption =
     trip.caption_tiktok || trip.caption || (await generatePlatformVariant(trip, "tiktok"));
+  const caption = withSignoff(baseCaption);
 
   // Proxy photos through our domain for TikTok URL ownership verification
   const photoUrls = toProxyUrls(trip.photo_urls.slice(0, 35));

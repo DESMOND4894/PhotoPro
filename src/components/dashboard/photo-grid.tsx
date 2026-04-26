@@ -6,6 +6,7 @@ import { useState } from "react";
 interface PhotoItem {
   id?: string;
   url: string;
+  mediaType?: "image" | "video";
 }
 
 interface PhotoGridProps {
@@ -15,12 +16,17 @@ interface PhotoGridProps {
   onPhotoDeleted?: () => void;
 }
 
+function inferMediaType(url: string): "image" | "video" {
+  // Storage convention: video URLs contain "/videos/" in the path.
+  return url.includes("/videos/") ? "video" : "image";
+}
+
 function normalizePhotos(photos: string[] | PhotoItem[]): PhotoItem[] {
   if (photos.length === 0) return [];
   if (typeof photos[0] === "string") {
-    return (photos as string[]).map((url) => ({ url }));
+    return (photos as string[]).map((url) => ({ url, mediaType: inferMediaType(url) }));
   }
-  return photos as PhotoItem[];
+  return (photos as PhotoItem[]).map((p) => ({ ...p, mediaType: p.mediaType ?? inferMediaType(p.url) }));
 }
 
 export function PhotoGrid({ photos, maxDisplay = 12, tripId, onPhotoDeleted }: PhotoGridProps) {
@@ -47,13 +53,31 @@ export function PhotoGrid({ photos, maxDisplay = 12, tripId, onPhotoDeleted }: P
             key={photo.id || i}
             className="group relative aspect-[3/4] overflow-hidden rounded-lg bg-slate-100"
           >
-            <Image
-              src={photo.url}
-              alt={`Trip photo ${i + 1}`}
-              fill
-              className="object-cover"
-              sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw"
-            />
+            {photo.mediaType === "video" ? (
+              <>
+                <video
+                  src={photo.url}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 h-full w-full bg-black object-cover"
+                />
+                <span className="pointer-events-none absolute left-1.5 bottom-1.5 flex items-center gap-1 rounded-full bg-black/65 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-white">
+                  <svg className="h-2.5 w-2.5" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M3 4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4zm9 1.5 3-1.5v8l-3-1.5v-5z" />
+                  </svg>
+                  Video
+                </span>
+              </>
+            ) : (
+              <Image
+                src={photo.url}
+                alt={`Trip photo ${i + 1}`}
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw"
+              />
+            )}
             {photo.id && tripId && (
               <button
                 type="button"

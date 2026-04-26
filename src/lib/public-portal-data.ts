@@ -50,9 +50,11 @@ async function getPhotosByIds(photoIds: string[]): Promise<Map<string, Photo>> {
 
 function mapTripCard(trip: Trip, photoMap: Map<string, Photo>): PublicTripCard {
   const rawCover = trip.public_cover_photo_id ? photoMap.get(trip.public_cover_photo_id) : null;
-  // Cover should be an image — videos can't render in <Image>. If cover is a
-  // video, ignore it and fall through to the photo_urls fallback below.
+  // Cover must be an image — videos can't render in <Image>. If the chosen
+  // cover is a video (or absent), fall back to the first photo_urls entry
+  // that isn't a video. Storage convention: video URLs contain "/videos/".
   const coverPhoto = rawCover && (rawCover.media_type ?? "image") === "image" ? rawCover : null;
+  const fallbackImageUrl = trip.photo_urls.find((url) => !url.includes("/videos/")) ?? null;
   const featuredPhotos = toStringArray(trip.featured_photo_ids)
     .map((id) => photoMap.get(id))
     .filter((photo): photo is Photo => Boolean(photo))
@@ -66,7 +68,7 @@ function mapTripCard(trip: Trip, photoMap: Map<string, Photo>): PublicTripCard {
     boatLabel: trip.boat,
     tripDate: trip.date,
     timeLabel: getTripTimeLabel(trip.trip_time),
-    coverPhotoUrl: coverPhoto ? getPublicPhotoUrl(coverPhoto) : trip.photo_urls[0] || null,
+    coverPhotoUrl: coverPhoto ? getPublicPhotoUrl(coverPhoto) : fallbackImageUrl,
     photoCount: trip.photo_count,
     speciesTags: toStringArray(trip.public_species_tags),
     featuredPhotoUrls: featuredPhotos,

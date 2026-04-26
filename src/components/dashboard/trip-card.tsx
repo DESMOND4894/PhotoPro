@@ -23,7 +23,7 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
   const [caption, setCaption] = useState(trip.caption || "");
 
   // Photo records with IDs for per-photo deletion
-  const [photoItems, setPhotoItems] = useState<{ id: string; url: string }[]>([]);
+  const [photoItems, setPhotoItems] = useState<{ id: string; url: string; mediaType?: "image" | "video" }[]>([]);
 
   useEffect(() => {
     // Fetch photo records to get IDs for deletion
@@ -32,7 +32,13 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
         .then((res) => res.json())
         .then((data) => {
           if (data.photos) {
-            setPhotoItems(data.photos.map((p: { id: string; public_url: string }) => ({ id: p.id, url: p.public_url })));
+            setPhotoItems(
+              data.photos.map((p: { id: string; public_url: string; media_type?: string }) => ({
+                id: p.id,
+                url: p.public_url,
+                mediaType: (p.media_type ?? "image") as "image" | "video",
+              }))
+            );
           }
         })
         .catch(() => {});

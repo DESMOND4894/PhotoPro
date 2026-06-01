@@ -2,6 +2,7 @@ import type { Trip } from "@/lib/types";
 import { generatePlatformVariant } from "@/lib/ai/caption-generator";
 import { sanitizeApiError } from "@/lib/utils/sanitize";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getTripMedia } from "@/lib/social/media";
 import { withSignoff } from "@/lib/brand";
 
 const TIKTOK_API_URL = "https://open.tiktokapis.com/v2";
@@ -104,17 +105,20 @@ async function refreshAccessToken(refreshToken: string, openId: string): Promise
  * TikTok requires URL ownership verification for PULL_FROM_URL,
  * so we proxy through our own domain.
  */
-function toProxyUrls(photoUrls: string[]): string[] {
+function toProxyUrl(url: string): string {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://photo-pro-mu.vercel.app";
-  return photoUrls.map(
-    (url) => `${appUrl}/api/photos/proxy?url=${encodeURIComponent(url)}`
-  );
+  return `${appUrl}/api/photos/proxy?url=${encodeURIComponent(url)}`;
+}
+
+function toProxyUrls(photoUrls: string[]): string[] {
+  return photoUrls.map(toProxyUrl);
 }
 
 /**
- * Post a photo slideshow to TikTok using the Content Posting API.
- * Uses PULL_FROM_URL with proxied URLs through our verified domain.
- * TikTok photo posts support up to 35 images (JPEG/WEBP only, no PNG).
+ * Post a trip's media to TikTok using the Content Posting API.
+ * TikTok cannot mix photos and video in one post, so:
+ * - If the trip has any video, post the first video (TikTok is video-first).
+ * - Otherwise post the photos as a slideshow.
  */
 export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
   const token = await getAccessToken();
@@ -124,8 +128,18 @@ export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
     trip.caption_tiktok || trip.caption || (await generatePlatformVariant(trip, "tiktok"));
   const caption = withSignoff(baseCaption);
 
+  const { imageUrls, videoUrls } = await getTripMedia(trip.id);
+
+  // Video takes priority — TikTok is a video platform and can't mix media types
+  if (videoUrls.length > 0) {
+    if (imageUrls.length > 0) {
+      console.log(`[TIKTOK] Trip has ${imageUrls.length} photos + video — posting the video only`);
+    }
+    return await postTikTokVideo(videoUrls[0], caption, token);
+  }
+
   // Proxy photos through our domain for TikTok URL ownership verification
-  const photoUrls = toProxyUrls(trip.photo_urls.slice(0, 35));
+  const photoUrls = toProxyUrls(imageUrls.slice(0, 35));
 
   // TikTok sandbox requires SELF_ONLY privacy; production can use PUBLIC_TO_EVERYONE
   const isSandbox = !process.env.TIKTOK_PRODUCTION;
@@ -185,6 +199,70 @@ export async function postTikTokSlideshow(trip: Trip): Promise<string | null> {
   const postId = await waitForTikTokPublish(publishId, token);
 
   console.log(`[TIKTOK] Slideshow posted: ${postId}`);
+  return postId;
+}
+
+/**
+ * Post a single video to TikTok using PULL_FROM_URL.
+ * The video is proxied through our verified domain for URL ownership.
+ */
+async function postTikTokVideo(
+  videoUrl: string,
+  caption: string,
+  token: string,
+): Promise<string | null> {
+  const proxiedUrl = toProxyUrl(videoUrl);
+
+  // TikTok sandbox requires SELF_ONLY privacy; production can use PUBLIC_TO_EVERYONE
+  const isSandbox = !process.env.TIKTOK_PRODUCTION;
+  const privacyLevel = isSandbox ? "SELF_ONLY" : "PUBLIC_TO_EVERYONE";
+
+  console.log(`[TIKTOK] Posting video, privacy: ${privacyLevel}`);
+
+  const initResponse = await fetch(
+    `${TIKTOK_API_URL}/post/publish/video/init/`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json; charset=UTF-8",
+      },
+      body: JSON.stringify({
+        post_info: {
+          title: caption.slice(0, 2200),
+          privacy_level: privacyLevel,
+          disable_comment: false,
+        },
+        source_info: {
+          source: "PULL_FROM_URL",
+          video_url: proxiedUrl,
+        },
+      }),
+    }
+  );
+
+  const initText = await initResponse.text();
+  let initData;
+  try {
+    initData = JSON.parse(initText);
+  } catch {
+    throw new Error(`TikTok video init returned non-JSON: ${sanitizeApiError(initText)}`);
+  }
+
+  if (initData.error?.code && initData.error.code !== "ok") {
+    console.error(`[TIKTOK] Video init failed:`, sanitizeApiError(initText));
+    throw new Error(`TikTok video init failed: ${sanitizeApiError(initText)}`);
+  }
+
+  const publishId = initData.data?.publish_id;
+  if (!publishId) {
+    throw new Error(`TikTok did not return a publish ID. Response: ${sanitizeApiError(initText)}`);
+  }
+
+  console.log(`[TIKTOK] Video init success, publish_id: ${publishId}`);
+
+  const postId = await waitForTikTokPublish(publishId, token);
+  console.log(`[TIKTOK] Video posted: ${postId}`);
   return postId;
 }
 

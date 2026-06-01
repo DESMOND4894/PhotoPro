@@ -2,26 +2,29 @@ import type { Trip } from "@/lib/types";
 import { generatePlatformVariant } from "@/lib/ai/caption-generator";
 import { sanitizeApiError } from "@/lib/utils/sanitize";
 import { getInstagramCredentials } from "@/lib/social/tokens";
+import { getTripMedia } from "@/lib/social/media";
 import { withSignoff } from "@/lib/brand";
 
 const GRAPH_API_URL = "https://graph.facebook.com/v21.0";
 
+type MediaItem = { type: "image" | "video"; url: string };
+
 /**
- * Post Instagram carousel(s).
- * Instagram carousels support max 20 images.
- * If more than 20, split into multiple carousels.
+ * Post a trip's media to Instagram.
+ * - A single photo posts as a single image.
+ * - A single video posts as a Reel.
+ * - Multiple items (photos and/or videos) post as a carousel (max 20 per post).
  */
 export async function postInstagramCarousel(trip: Trip): Promise<string[]> {
-  const postIds: string[] = [];
-  const photoUrls = trip.photo_urls;
+  const { imageUrls, videoUrls } = await getTripMedia(trip.id);
 
-  // Split into chunks of 20
-  const chunks: string[][] = [];
-  for (let i = 0; i < photoUrls.length; i += 20) {
-    chunks.push(photoUrls.slice(i, i + 20));
-  }
+  const items: MediaItem[] = [
+    ...imageUrls.map((url) => ({ type: "image" as const, url })),
+    ...videoUrls.map((url) => ({ type: "video" as const, url })),
+  ];
 
-  // Use Instagram-specific caption, fall back to main caption, then AI generation
+  if (items.length === 0) return [];
+
   const baseCaption =
     trip.caption_instagram ||
     trip.caption ||
@@ -30,38 +33,100 @@ export async function postInstagramCarousel(trip: Trip): Promise<string[]> {
 
   const { token, igAccountId: igId } = await getInstagramCredentials();
 
-  for (const chunk of chunks) {
-    const postId = await postSingleCarousel(chunk, caption, token, igId);
+  // Single item: post directly (single image, or a Reel for a single video)
+  if (items.length === 1) {
+    const item = items[0];
+    const postId =
+      item.type === "video"
+        ? await postReel(item.url, caption, token, igId)
+        : await postSingleImage(item.url, caption, token, igId);
+    return postId ? [postId] : [];
+  }
+
+  // Multiple items: carousel(s), max 20 per carousel
+  const postIds: string[] = [];
+  for (let i = 0; i < items.length; i += 20) {
+    const chunk = items.slice(i, i + 20);
+    const postId = await postCarousel(chunk, caption, token, igId);
     if (postId) postIds.push(postId);
   }
 
   return postIds;
 }
 
-async function postSingleCarousel(
-  photoUrls: string[],
+async function postSingleImage(
+  imageUrl: string,
   caption: string,
   token: string,
   igId: string,
 ): Promise<string | null> {
+  const response = await fetch(`${GRAPH_API_URL}/${igId}/media`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image_url: imageUrl,
+      caption,
+      access_token: token,
+    }),
+  });
 
-  // Step 1: Create media containers for each image
+  if (!response.ok) {
+    console.error("Instagram single image failed:", sanitizeApiError(await response.text()));
+    return null;
+  }
+  const data = await response.json();
+  return await publishContainer(data.id, token, igId);
+}
+
+async function postReel(
+  videoUrl: string,
+  caption: string,
+  token: string,
+  igId: string,
+): Promise<string | null> {
+  const response = await fetch(`${GRAPH_API_URL}/${igId}/media`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      media_type: "REELS",
+      video_url: videoUrl,
+      caption,
+      share_to_feed: true,
+      access_token: token,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error("Instagram reel creation failed:", sanitizeApiError(await response.text()));
+    return null;
+  }
+  const data = await response.json();
+  return await publishContainer(data.id, token, igId);
+}
+
+async function postCarousel(
+  items: MediaItem[],
+  caption: string,
+  token: string,
+  igId: string,
+): Promise<string | null> {
+  // Step 1: Create a child container for each item
   const containerIds: string[] = [];
 
-  for (const url of photoUrls) {
+  for (const item of items) {
+    const body =
+      item.type === "video"
+        ? { media_type: "VIDEO", video_url: item.url, is_carousel_item: true, access_token: token }
+        : { image_url: item.url, is_carousel_item: true, access_token: token };
+
     const response = await fetch(`${GRAPH_API_URL}/${igId}/media`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        image_url: url,
-        is_carousel_item: true,
-        access_token: token,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error(`Instagram media container failed:`, sanitizeApiError(error));
+      console.error(`Instagram ${item.type} container failed:`, sanitizeApiError(await response.text()));
       continue;
     }
 
@@ -71,25 +136,17 @@ async function postSingleCarousel(
 
   if (containerIds.length === 0) return null;
 
-  // If only 1 image, post as single image instead of carousel
+  // Carousel needs at least 2 items; if only one survived, publish it on its own
   if (containerIds.length === 1) {
-    // Re-create as non-carousel item
-    const response = await fetch(`${GRAPH_API_URL}/${igId}/media`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        image_url: photoUrls[0],
-        caption,
-        access_token: token,
-      }),
-    });
-
-    if (!response.ok) return null;
-    const data = await response.json();
-    return await publishContainer(data.id, token, igId);
+    return await publishContainer(containerIds[0], token, igId);
   }
 
-  // Step 2: Create carousel container
+  // Step 2: Wait for every child to finish processing (videos are async)
+  for (const id of containerIds) {
+    await waitForContainerReady(id, token);
+  }
+
+  // Step 3: Create the carousel container
   const carouselResponse = await fetch(`${GRAPH_API_URL}/${igId}/media`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -108,7 +165,7 @@ async function postSingleCarousel(
 
   const carouselData = await carouselResponse.json();
 
-  // Step 3: Publish
+  // Step 4: Publish
   return await publishContainer(carouselData.id, token, igId);
 }
 
@@ -138,7 +195,7 @@ async function publishContainer(containerId: string, token: string, igId: string
 async function waitForContainerReady(
   containerId: string,
   token: string,
-  maxAttempts = 12
+  maxAttempts = 20
 ): Promise<void> {
   let delay = 2000; // Start at 2 seconds
 

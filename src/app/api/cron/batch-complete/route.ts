@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { generateCaption } from "@/lib/ai/caption-generator";
 import { sendCaptainNotification } from "@/lib/whatsapp/client";
 import type { Trip } from "@/lib/types";
 
@@ -46,32 +45,22 @@ export async function GET(request: NextRequest) {
 
   for (const trip of readyTrips as Trip[]) {
     try {
-      // Mark batch complete
-      await supabase
-        .from("trips")
-        .update({ batch_complete: true })
-        .eq("id", trip.id);
-
-      // Generate AI caption
-      const caption = await generateCaption(trip);
-
-      // Update trip with caption and move to pending
+      // Mark batch complete and move to pending — no auto-caption.
+      // The captain types the caption they want on the post.
       await supabase
         .from("trips")
         .update({
-          caption,
-          caption_facebook: caption,
+          batch_complete: true,
           status: "pending",
         })
         .eq("id", trip.id);
 
-      // Notify captain via WhatsApp
+      // Notify captain via WhatsApp to add a caption
       await sendCaptainNotification(
         trip.id,
         trip.boat,
         trip.trip_time,
-        trip.photo_count,
-        caption
+        trip.photo_count
       );
 
       processed++;

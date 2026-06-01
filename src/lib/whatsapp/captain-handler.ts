@@ -33,15 +33,9 @@ export async function handleCaptainResponse(
     return;
   }
 
-  // EDIT — prompt to type a custom caption
-  if (normalizedText === "edit") {
-    await sendTextMessage(captainPhone, "Type your new caption and send it:", currentBoat);
-    return;
-  }
-
-  // NEW / REDO — generate a fresh AI caption
-  if (normalizedText === "new" || normalizedText === "redo") {
-    await requestNewCaption(supabase, captainPhone, currentBoat);
+  // EDIT / NEW / REDO — prompt to type a caption
+  if (normalizedText === "edit" || normalizedText === "new" || normalizedText === "redo") {
+    await sendTextMessage(captainPhone, "Type your caption and send it:", currentBoat);
     return;
   }
 
@@ -90,16 +84,14 @@ async function processReceivingTrips(
     return;
   }
 
-  const { generateCaption } = await import("@/lib/ai/caption-generator");
-
   for (const trip of receivingTrips as Trip[]) {
-    const caption = await generateCaption(trip);
-
     await supabase
       .from("trips")
       .update({
-        caption,
-        caption_facebook: caption,
+        caption: null,
+        caption_facebook: null,
+        caption_instagram: null,
+        caption_tiktok: null,
         status: "pending",
         batch_complete: true,
       })
@@ -108,11 +100,8 @@ async function processReceivingTrips(
     await sendTextMessage(
       captainPhone,
       `📸 ${trip.boat} — ${trip.trip_time} trip\n` +
-        `${trip.photo_count} photo${trip.photo_count > 1 ? "s" : ""}\n\n` +
-        `Caption:\n"${withSignoff(caption)}"\n\n` +
-        `OK = Post it\n` +
-        `EDIT = Write your own\n` +
-        `NEW = Different AI caption\n` +
+        `${trip.photo_count} photo${trip.photo_count > 1 ? "s" : ""} ready\n\n` +
+        `Add a caption — type the words you want on the post and send them.\n\n` +
         `SKIP = Don't post`,
       trip.boat
     );
@@ -230,6 +219,15 @@ async function approveLatestPending(
     return;
   }
 
+  if (!trip.caption || trip.caption.trim() === "") {
+    await sendTextMessage(
+      captainPhone,
+      "Add a caption first — type the words you want on the post, then send OK.",
+      currentBoat
+    );
+    return;
+  }
+
   await approveTrip(supabase, trip);
   await sendPostingConfirmation(
     captainPhone,
@@ -254,51 +252,32 @@ async function approveAllPending(
     return;
   }
 
-  for (const trip of pendingTrips as Trip[]) {
-    await approveTrip(supabase, trip);
-  }
-
-  const boatNames = (pendingTrips as Trip[]).map((t) => t.boat).join(" & ");
-  await sendTextMessage(
-    captainPhone,
-    `Approved! ${boatNames} posting now.`,
-    currentBoat
+  const captioned = (pendingTrips as Trip[]).filter(
+    (t) => t.caption && t.caption.trim() !== ""
   );
-}
 
-async function requestNewCaption(
-  supabase: ReturnType<typeof createServiceClient>,
-  captainPhone: string,
-  currentBoat: BoatName
-): Promise<void> {
-  const trip = await getLatestPendingTrip(supabase);
-
-  if (!trip) {
-    await sendTextMessage(captainPhone, "No pending batches to edit.", currentBoat);
+  if (captioned.length === 0) {
+    await sendTextMessage(
+      captainPhone,
+      "Add a caption to each batch first — type the words you want on the post, then send OK ALL.",
+      currentBoat
+    );
     return;
   }
 
-  const { generateCaption } = await import("@/lib/ai/caption-generator");
-  const newCaption = await generateCaption(trip);
+  for (const trip of captioned) {
+    await approveTrip(supabase, trip);
+  }
 
-  await supabase
-    .from("trips")
-    .update({
-      caption: newCaption,
-      caption_facebook: newCaption,
-      caption_instagram: null,
-      caption_tiktok: null,
-    })
-    .eq("id", trip.id);
-
+  const boatNames = captioned.map((t) => t.boat).join(" & ");
+  const waiting = (pendingTrips as Trip[]).length - captioned.length;
   await sendTextMessage(
     captainPhone,
-    `📝 New caption for ${trip.boat}:\n\n"${withSignoff(newCaption)}"\n\n` +
-      `OK = Post it\n` +
-      `EDIT = Write your own\n` +
-      `NEW = Try again\n` +
-      `SKIP = Don't post`,
-    trip.boat
+    `Approved! ${boatNames} posting now.` +
+      (waiting > 0
+        ? `\n\n${waiting} batch${waiting > 1 ? "es" : ""} still need a caption before posting.`
+        : ""),
+    currentBoat
   );
 }
 
